@@ -9,34 +9,66 @@ struct SetupView: View {
     @ObservedObject private var imagePets = ImagePetStore.shared
     var onClose: () -> Void
 
+    enum Tab: String, CaseIterable { case pet = "Pet", setup = "Setup" }
+    @State private var tab: Tab = .pet
+
     private var selectedPack: ImagePetPack? {
         pet.selectedPetID.flatMap { imagePets.pack(id: $0) }
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 26) {
-                header
-                hero
-                if let pack = selectedPack {
-                    animationsSection(pack)
+        VStack(alignment: .leading, spacing: 0) {
+            header
+                .padding(EdgeInsets(top: 42, leading: 28, bottom: 14, trailing: 28))
+            tabBar
+                .padding(.horizontal, 28)
+                .padding(.bottom, 14)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 22) {
+                    switch tab {
+                    case .pet:
+                        hero
+                        if let pack = selectedPack { animationsSection(pack) }
+                    case .setup:
+                        setupSection
+                    }
                 }
-                setupSection
-                HStack {
-                    Spacer()
-                    Button("Done") { onClose() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Theme.accent)
-                        .keyboardShortcut(.defaultAction)
-                }
+                .padding(EdgeInsets(top: 0, leading: 28, bottom: 24, trailing: 28))
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(EdgeInsets(top: 42, leading: 28, bottom: 28, trailing: 28))
-            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Divider().overlay(Theme.cardStroke)
+            HStack {
+                Spacer()
+                Button("Done") { onClose() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Theme.accent)
+                    .keyboardShortcut(.defaultAction)
+            }
+            .padding(EdgeInsets(top: 12, leading: 28, bottom: 16, trailing: 28))
         }
         .frame(width: 620, height: 640)
         .background(Theme.background)
         .preferredColorScheme(.dark)
         .onAppear { model.refresh() }
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 8) {
+            ForEach(Tab.allCases, id: \.self) { item in
+                let on = item == tab
+                Button { tab = item } label: {
+                    Text(item.rawValue)
+                        .font(.system(size: 13, weight: on ? .semibold : .regular))
+                        .foregroundStyle(on ? .white : .white.opacity(0.6))
+                        .padding(.horizontal, 16).padding(.vertical, 7)
+                        .background(Capsule().fill(on ? Theme.accent : .white.opacity(0.07)))
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer()
+        }
     }
 
     // MARK: - Header
