@@ -1,7 +1,6 @@
 import SwiftUI
 import AppKit
 
-@main
 struct AgentPetApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 

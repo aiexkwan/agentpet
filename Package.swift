@@ -5,9 +5,19 @@ let package = Package(
     name: "AgentPet",
     platforms: [.macOS(.v13)],
     targets: [
+        .target(
+            name: "AgentPetCore",
+            path: "Sources/AgentPetCore"
+        ),
         .executableTarget(
-            name: "AgentPet",
-            path: "Sources/AgentPet"
-        )
+            name: "agentpet",
+            dependencies: ["AgentPetCore"],
+            path: "Sources/App"
+        ),
+        .testTarget(
+            name: "AgentPetCoreTests",
+            dependencies: ["AgentPetCore"],
+            path: "Tests/AgentPetCoreTests"
+        ),
     ]
 )
