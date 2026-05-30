@@ -3,13 +3,23 @@ import AgentPetCore
 
 struct RemotePet: Decodable, Identifiable {
     let slug: String
-    let displayName: String
-    let kind: String
-    let submittedBy: String
+    let displayName: String?
+    let submittedBy: String?
     let spritesheetUrl: String
     let petJsonUrl: String
 
     var id: String { slug }
+    var name: String { displayName ?? slug }
+    var author: String { submittedBy ?? "community" }
+}
+
+/// Decodes `T` but tolerates a malformed element (yields `nil` instead of
+/// failing the whole array).
+private struct Lenient<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: Decoder) {
+        value = try? T(from: decoder)
+    }
 }
 
 /// Loads the online pet library and downloads packs into `~/.agentpet/pets/`.
@@ -25,13 +35,20 @@ final class PetBrowser: ObservableObject {
     // Internal source of the library (not surfaced in the UI).
     private static let manifestURL = URL(string: "https://petdex.crafter.run/api/manifest")!
 
-    private struct Manifest: Decodable { let pets: [RemotePet] }
+    private struct Manifest: Decodable {
+        let pets: [RemotePet]
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            pets = try container.decode([Lenient<RemotePet>].self, forKey: .pets).compactMap(\.value)
+        }
+        enum CodingKeys: String, CodingKey { case pets }
+    }
     private struct PackMeta: Decodable { let id: String?; let spritesheetPath: String }
 
     var results: [RemotePet] {
         guard !query.isEmpty else { return pets }
         let q = query.lowercased()
-        return pets.filter { $0.displayName.lowercased().contains(q) || $0.slug.contains(q) }
+        return pets.filter { $0.name.lowercased().contains(q) || $0.slug.contains(q) }
     }
 
     func loadIfNeeded() {

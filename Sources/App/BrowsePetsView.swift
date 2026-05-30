@@ -71,8 +71,8 @@ private struct RemotePetRow: View {
                 .background(RoundedRectangle(cornerRadius: 8).fill(.quaternary))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(pet.displayName).font(.system(size: 13, weight: .medium))
-                Text("by \(pet.submittedBy)").font(.caption).foregroundStyle(.secondary)
+                Text(pet.name).font(.system(size: 13, weight: .medium))
+                Text("by \(pet.author)").font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
 
