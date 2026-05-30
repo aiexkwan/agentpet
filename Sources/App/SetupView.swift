@@ -321,6 +321,7 @@ private struct PetThumb: View {
             .padding(6)
             .background(RoundedRectangle(cornerRadius: 10).fill(selected ? Color.systemAccent.opacity(0.2) : .clear))
             .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(selected ? Color.systemAccent : .secondary.opacity(0.3), lineWidth: selected ? 2 : 1))
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -351,9 +352,11 @@ private struct AnimationPicker: View {
                             .frame(width: 54, height: 44)
                         Text("Clip \(i + 1)").font(.caption2).foregroundStyle(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
                     .padding(5)
                     .background(RoundedRectangle(cornerRadius: 9).fill(i == current ? Color.systemAccent.opacity(0.2) : .clear))
                     .overlay(RoundedRectangle(cornerRadius: 9).strokeBorder(i == current ? Color.systemAccent : .secondary.opacity(0.25), lineWidth: i == current ? 2 : 1))
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }
