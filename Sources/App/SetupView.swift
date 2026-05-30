@@ -62,6 +62,7 @@ private struct TabButton: View {
             .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(selected ? Color.accentColor.opacity(0.55) : .clear, lineWidth: 1))
             .foregroundStyle(selected ? Color.accentColor : Color.primary)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
