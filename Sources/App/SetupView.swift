@@ -257,17 +257,13 @@ private struct PetTab: View {
                     if imagePets.packs.count > 4 {
                         HStack(spacing: 6) {
                             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                            TextField("Search your pets", text: $petQuery).textFieldStyle(.plain)
+                            TextField("Search your pets", text: $petQuery)
+                                .textFieldStyle(.plain)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 12)], spacing: 12) {
-                        ForEach(filteredPacks) { pack in
-                            PetThumb(pack: pack, selected: pet.selectedPetID == pack.id) {
-                                pet.selectedPetID = pack.id
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+                    PetPager(packs: filteredPacks, selectedID: pet.selectedPetID) { pet.selectedPetID = $0 }
                 }
                 Button { browsing = true } label: {
                     Label("Browse pets…", systemImage: "square.grid.2x2")
@@ -311,6 +307,48 @@ private struct PetTab: View {
 }
 
 // MARK: - Components
+
+private struct PetPager: View {
+    let packs: [ImagePetPack]
+    let selectedID: String?
+    let onSelect: (String) -> Void
+    @State private var page = 0
+
+    private let perPage = 8
+
+    var body: some View {
+        let pageCount = max(1, Int(ceil(Double(packs.count) / Double(perPage))))
+        let current = min(page, pageCount - 1)
+        let slice = Array(packs.dropFirst(current * perPage).prefix(perPage))
+
+        VStack(spacing: 10) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4), spacing: 12) {
+                ForEach(slice) { pack in
+                    PetThumb(pack: pack, selected: selectedID == pack.id) { onSelect(pack.id) }
+                }
+            }
+
+            if pageCount > 1 {
+                HStack(spacing: 12) {
+                    Button { page = max(0, current - 1) } label: { Image(systemName: "chevron.left") }
+                        .buttonStyle(.plain).disabled(current == 0)
+                    HStack(spacing: 5) {
+                        ForEach(0..<pageCount, id: \.self) { i in
+                            Circle()
+                                .fill(i == current ? Color.systemAccent : .secondary.opacity(0.4))
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+                    Button { page = min(pageCount - 1, current + 1) } label: { Image(systemName: "chevron.right") }
+                        .buttonStyle(.plain).disabled(current == pageCount - 1)
+                }
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+        .onChange(of: packs.count) { _ in page = 0 }
+    }
+}
 
 private struct PetThumb: View {
     let pack: ImagePetPack
