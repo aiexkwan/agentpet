@@ -138,9 +138,11 @@ private struct AgentRow: View {
             Circle().fill(dotColor).frame(width: 8, height: 8)
             VStack(alignment: .leading, spacing: 1) {
                 Text(project).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
-                Text(session.state.rawValue.capitalized).font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
+                Text(subtitle)
+                    .font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
+                    .lineLimit(1).truncationMode(.tail)
             }
-            Spacer()
+            Spacer(minLength: 8)
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 Text(timeString(now: context.date))
                     .font(.system(size: 11, design: .monospaced))
@@ -152,6 +154,12 @@ private struct AgentRow: View {
 
     private var project: String {
         session.project.map { ($0 as NSString).lastPathComponent } ?? session.id
+    }
+
+    /// The agent's context (waiting reason / running tool) when known, else its state.
+    private var subtitle: String {
+        if let message = session.message, !message.isEmpty { return message }
+        return session.state.rawValue.capitalized
     }
 
     private var dotColor: Color {
