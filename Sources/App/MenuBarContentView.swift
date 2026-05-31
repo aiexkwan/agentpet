@@ -61,7 +61,17 @@ struct MenuContentView: View {
 
     private var agentSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            sectionLabel("Agents")
+            HStack {
+                sectionLabel("Agents")
+                Spacer()
+                if !agents.isEmpty {
+                    Button("Clear all") { daemon.clearSessions() }
+                        .buttonStyle(.plain)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.white.opacity(0.45))
+                        .padding(.trailing, 14).padding(.top, 12).padding(.bottom, 6)
+                }
+            }
             if agents.isEmpty {
                 Text("Nothing running right now.")
                     .font(.system(size: 12)).foregroundStyle(.white.opacity(0.4))
