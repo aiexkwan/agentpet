@@ -35,6 +35,8 @@ Running multiple agents in parallel means constantly switching windows to check 
 <div align="center">
   <img src="assets/screenshot-menubar.png" width="360" alt="Menu bar monitor" />
   <img src="assets/screenshot-settings.png" width="360" alt="Settings" />
+  <img src="assets/screenshot-pet.png" width="360" alt="Pet" />
+  <img src="assets/screenshot-notification.png" width="360" alt="Notification" />
   <br/>
   <img src="assets/demo.gif" width="600" alt="Pet reacting to agent activity" />
 </div>

@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:agentpet}",
+      "name": "Debug agentpet",
+      "target": "agentpet",
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug agentpet"
+    },
+    {
+      "type": "swift",
+      "request": "launch",
+      "args": [],
+      "cwd": "${workspaceFolder:agentpet}",
+      "name": "Release agentpet",
+      "target": "agentpet",
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release agentpet"
+    }
+  ]
+}
