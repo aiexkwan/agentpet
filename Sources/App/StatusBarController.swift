@@ -71,7 +71,9 @@ final class StatusBarController: NSObject, ObservableObject {
         guard let button = statusItem?.button else { return }
         let active = sessions.filter { $0.state != .idle }
         let waiting = active.filter { $0.state == .waiting }.count
-        let running = active.filter { $0.state == .working || $0.state == .registered }.count
+        // `registered` (agent open but idle) doesn't count as running, so just
+        // opening an agent doesn't inflate the menu bar count.
+        let running = active.filter { $0.state == .working }.count
 
         let hasAgents = waiting > 0 || running > 0
 

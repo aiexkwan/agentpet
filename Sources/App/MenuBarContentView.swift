@@ -54,8 +54,9 @@ struct MenuContentView: View {
     private var subtitle: String {
         let total = agents.count
         if total == 0 { return "No agents running" }
-        let running = agents.filter { $0.state == .working || $0.state == .registered }.count
-        return "\(total) agent\(total == 1 ? "" : "s") · \(running) running"
+        let running = agents.filter { $0.state == .working }.count
+        let label = "\(total) agent\(total == 1 ? "" : "s")"
+        return running > 0 ? "\(label) · \(running) running" : label
     }
 
     // MARK: Agents

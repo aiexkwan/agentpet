@@ -10,18 +10,24 @@ public final class SessionStore {
     public var doneToIdleAfter: TimeInterval
     /// `idle` sessions are removed after this much quiet time.
     public var removeIdleAfter: TimeInterval
-    /// Active sessions (working/waiting/registered) with no update for this long
-    /// are removed: the agent almost certainly died without a `Stop` event.
+    /// Working/waiting sessions with no update for this long are removed: the
+    /// agent almost certainly died without a `Stop` event.
     public var staleActiveAfter: TimeInterval
+    /// A merely `registered` session (agent open but never started working) is
+    /// dropped sooner: it reappears as `working` the moment the agent does
+    /// anything, so a quiet/abandoned one shouldn't linger as "running".
+    public var staleRegisteredAfter: TimeInterval
 
     private var byID: [String: AgentSession] = [:]
 
     public init(doneToIdleAfter: TimeInterval = 30,
                 removeIdleAfter: TimeInterval = 600,
-                staleActiveAfter: TimeInterval = 300) {
+                staleActiveAfter: TimeInterval = 300,
+                staleRegisteredAfter: TimeInterval = 90) {
         self.doneToIdleAfter = doneToIdleAfter
         self.removeIdleAfter = removeIdleAfter
         self.staleActiveAfter = staleActiveAfter
+        self.staleRegisteredAfter = staleRegisteredAfter
     }
 
     /// Removes all sessions (e.g. after the user disconnects an integration).
@@ -88,7 +94,11 @@ public final class SessionStore {
                 if quiet >= removeIdleAfter {
                     byID.removeValue(forKey: id)
                 }
-            case .working, .waiting, .registered:
+            case .registered:
+                if quiet >= staleRegisteredAfter {
+                    byID.removeValue(forKey: id)
+                }
+            case .working, .waiting:
                 if quiet >= staleActiveAfter {
                     byID.removeValue(forKey: id)
                 }

@@ -105,6 +105,15 @@ final class SessionStoreTests: XCTestCase {
         XCTAssertNil(store.session(id: "s1"), "stale working session removed")
     }
 
+    func testPruneRemovesStaleRegisteredSooner() {
+        let store = SessionStore(staleActiveAfter: 300, staleRegisteredAfter: 90)
+        store.apply(event("SessionStart"), now: t0)   // registered, never worked
+        store.prune(now: t0.addingTimeInterval(60))
+        XCTAssertNotNil(store.session(id: "s1"), "kept before registered timeout")
+        store.prune(now: t0.addingTimeInterval(90))
+        XCTAssertNil(store.session(id: "s1"), "idle registered session removed sooner than working")
+    }
+
     func testClearRemovesAll() {
         let store = SessionStore()
         store.apply(event("UserPromptSubmit", session: "a"), now: t0)
