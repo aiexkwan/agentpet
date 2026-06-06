@@ -15,13 +15,13 @@ const agents = [
   { name: "Antigravity", icon: "/agent-icons/antigravity.svg", kind: "Lifecycle hooks", body: "Antigravity hooks keep the pet in sync with every agent run.", status: "Active" },
 ];
 ---
-<Base title="Integrations — AgentPet" description="Connect AgentPet to your AI coding agents." active="integrations">
+<Base title="Integrations · AgentPet" description="Connect AgentPet to your AI coding agents." active="integrations">
   <Hero
     eyebrow="AI assistant setup"
     icon="bolt"
     title="Connect AgentPet to"
     accent="your agent"
-    lead="AgentPet is a cross-platform desktop pet for AI coding agents. Pick your tool, connect it in one tap, and let your pet react while the agents work."
+    lead="AgentPet watches your AI coding agents and shows a desktop pet that reacts. Pick your tool, connect it in one tap, and see at a glance who's working, done, or waiting for you."
   >
     <a href="/install" class="btn-primary !px-6 !py-3"><Icon name="download" class="h-5 w-5" /> Get the app</a>
     <a href="/docs#agents" class="btn-ghost !px-6 !py-3"><Icon name="book" class="h-5 w-5" /> How it works</a>
@@ -54,7 +54,7 @@ const agents = [
           <span class="grid h-12 w-12 place-items-center rounded-2xl bg-white/20 ring-1 ring-white/30"><Icon name="sparkles" class="h-6 w-6 text-white" /></span>
           <div class="mt-5 font-pixel text-[11px] uppercase tracking-wide text-brand-100">More on the way</div>
           <h3 class="mt-1 font-display text-xl font-semibold text-white">Missing your tool?</h3>
-          <p class="mt-2 flex-1 text-sm text-brand-100">Any MCP-capable assistant can connect over a local socket. Ask for a first-class integration on Discord.</p>
+          <p class="mt-2 flex-1 text-sm text-brand-100">Any CLI agent works too: wrap it with <code class="rounded bg-white/15 px-1.5 py-0.5 font-mono text-xs text-white">agentpet run</code>. Ask for a first-class integration on Discord.</p>
           <a href="https://discord.gg/kzFJKsZav" target="_blank" rel="noopener" class="mt-5 inline-flex items-center gap-1 font-semibold text-white">
             <Icon name="discord" class="h-4 w-4" /> Request on Discord
           </a>
@@ -64,7 +64,7 @@ const agents = [
       <!-- how connect works -->
       <div class="mt-10 grid gap-5 md:grid-cols-3">
         {[
-          { icon: "download", t: "Install AgentPet", b: "Grab the app for macOS, Windows, or Linux. One command, free forever." },
+          { icon: "download", t: "Install AgentPet", b: "Grab the app for macOS (Windows and Linux soon). One command, free forever." },
           { icon: "bolt", t: "Connect in one tap", b: "Open Settings, toggle your tools on. Hooks are written for you, no config files to edit." },
           { icon: "sparkles", t: "Watch it react", b: "Your pet thinks, works, and celebrates in step with every agent run." },
         ].map((s, i) => (

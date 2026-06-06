@@ -5,8 +5,8 @@ import Hero from "../components/Hero.astro";
 const DISCORD = "https://discord.gg/kzFJKsZav";
 const steps = [
   { icon: "wand", title: "Design a spritesheet", body: "One transparent PNG. Each row is an animation (idle, running, waving…), each column a frame, with clear transparent gaps between frames." },
-  { icon: "sparkles", title: "Add a pet.json", body: "A tiny manifest: id, displayName, description, and the spritesheet path. AgentPet auto-detects the animation rows for you." },
-  { icon: "paw", title: "Share it", body: "Drop your pet in our Discord (upload here is coming soon). The community library is open and MIT-licensed." },
+  { icon: "sparkles", title: "Add a pet.json", body: "A tiny manifest: id, displayName, and description, packed next to the spritesheet. AgentPet maps each row to a state." },
+  { icon: "paw", title: "Share it", body: "Drop your pet in our Discord (upload here is coming soon). The pet-pack format is open; artwork stays with its creator." },
 ];
 const prompt = `Draw a chibi pixel-art desktop pet as ONE transparent PNG spritesheet.
 - Each ROW is an animation (idle, run, jump, wave, waiting), frames left to right.
@@ -14,9 +14,9 @@ const prompt = `Draw a chibi pixel-art desktop pet as ONE transparent PNG sprite
 - Character: [describe your pet here].
 Output a single transparent PNG.`;
 ---
-<Base title="Make a pet — AgentPet" description="Create and share your own pixel companion." active="make">
+<Base title="Make a pet · AgentPet" description="Create and share your own pixel companion." active="make">
   <Hero
-    eyebrow="Open · MIT · Community-made"
+    eyebrow="Open format · Community-made"
     icon="wand"
     title="Make your own"
     accent="pixel pet"
