@@ -14,6 +14,6 @@ export const GET: APIRoute = async () => {
     for (const r of rows?.results ?? []) likes[r.slug] = r.likes;
   }
   return new Response(JSON.stringify({ likes }), {
-    headers: { "content-type": "application/json", "cache-control": "public, max-age=60" },
+    headers: { "content-type": "application/json", "cache-control": "public, max-age=120" },
   });
 };
