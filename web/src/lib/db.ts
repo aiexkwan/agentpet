@@ -24,6 +24,18 @@ export async function ensureSchema(db: any): Promise<void> {
     ),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_pet_likes_user ON pet_likes (user_id)"),
     db.prepare("CREATE TABLE IF NOT EXISTS pet_stats (slug TEXT PRIMARY KEY, likes INTEGER NOT NULL DEFAULT 0)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, login TEXT, avatar TEXT, updated_at INTEGER NOT NULL DEFAULT 0)"),
   ]);
   ready = true;
+}
+
+// Upsert the signed-in user's public profile so leaderboards can show login + avatar.
+export async function upsertUser(db: any, u: { id: number; login: string; avatar: string }): Promise<void> {
+  if (!db) return;
+  await db
+    .prepare(
+      "INSERT INTO users (id, login, avatar, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET login=excluded.login, avatar=excluded.avatar, updated_at=excluded.updated_at"
+    )
+    .bind(u.id, u.login, u.avatar, Date.now())
+    .run();
 }

@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { verifySession, SESSION_COOKIE } from "../../lib/auth";
-import { getDB, ensureSchema } from "../../lib/db";
+import { getDB, ensureSchema, upsertUser } from "../../lib/db";
 
 export const prerender = false;
 
@@ -29,6 +29,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const db = getDB();
   if (!db) return json({ error: "no-db" }, 503);
   await ensureSchema(db);
+  await upsertUser(db, { id: user.id, login: user.login, avatar: user.avatar });
 
   const existing = await db.prepare("SELECT 1 FROM pet_likes WHERE slug=? AND user_id=?").bind(slug, user.id).first();
   let liked: boolean;
