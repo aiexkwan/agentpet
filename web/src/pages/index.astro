@@ -191,19 +191,9 @@ const bubblePos = [
             by {spotlight.author}
           </div>
           <p id="spotDesc" class="mt-4 max-w-xl text-muted">{spotlight.desc || "A delightful community pixel companion, ready to live on your desktop."}</p>
-          <div class="mt-6 flex flex-wrap gap-x-8 gap-y-3">
-            <div>
-              <div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="heart" class="h-5 w-5 text-accent-500" /><span id="spotLikes">{spotlight.likes}</span></div>
-              <div class="text-xs text-faint">likes</div>
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="download" class="h-5 w-5 text-brand-500" /><span id="spotDownloads">{spotlight.downloads.toLocaleString()}</span></div>
-              <div class="text-xs text-faint">downloads</div>
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="monitor" class="h-5 w-5 text-emerald-500" /><span id="spotUsage">{spotlight.usage.toLocaleString()}</span></div>
-              <div class="text-xs text-faint">in use now</div>
-            </div>
+          <div class="mt-6">
+            <div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="heart" class="h-5 w-5 text-accent-500" /><span id="spotLikes" data-like-count data-slug={spotlight.slug}>0</span></div>
+            <div class="text-xs text-faint">likes</div>
           </div>
           <div class="mt-7 flex flex-wrap gap-3">
             <a id="spotAdopt" href={`/pet/${spotlight.slug}`} class="btn-primary !px-6 !py-3"><Icon name="paw" class="h-5 w-5" /> Adopt this pet</a>
@@ -405,9 +395,9 @@ const bubblePos = [
         if (d && d.slug) {
           setText("spotName", d.name);
           setText("spotDesc", d.desc || "A delightful community pixel companion, ready to live on your desktop.");
-          setText("spotLikes", String(d.likes));
-          setText("spotDownloads", Number(d.downloads).toLocaleString());
-          setText("spotUsage", Number(d.usage).toLocaleString());
+          const sl = document.getElementById("spotLikes");
+          if (sl) { sl.setAttribute("data-slug", d.slug); sl.textContent = "0"; }
+          (window as any).apRefreshLikes?.();
           document.getElementById("spotAdopt")?.setAttribute("href", "/pet/" + d.slug);
           spot?.load("/api/sprite/" + d.slug);
         }

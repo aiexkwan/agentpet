@@ -31,9 +31,7 @@ const { pet: p } = Astro.props as { pet: Pet };
       ))}
     </div>
     <div class="mt-3 flex items-center gap-3 border-t border-line pt-2.5 text-xs font-medium text-muted">
-      <span class="inline-flex items-center gap-1" title="Likes"><Icon name="heart" class="h-3.5 w-3.5 text-accent-500" />{p.likes}</span>
-      <span class="inline-flex items-center gap-1" title="Downloads"><Icon name="download" class="h-3.5 w-3.5 text-brand-500" />{p.downloads.toLocaleString()}</span>
-      <span class="inline-flex items-center gap-1" title="In use now"><Icon name="monitor" class="h-3.5 w-3.5 text-emerald-500" />{p.usage.toLocaleString()}</span>
+      <span class="inline-flex items-center gap-1" title="Likes"><Icon name="heart" class="h-3.5 w-3.5 text-accent-500" /><span data-like-count data-slug={p.slug}>0</span></span>
     </div>
   </div>
 </a>

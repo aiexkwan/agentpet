@@ -71,11 +71,10 @@ const GITHUB = "https://github.com/ntd4996/agentpet";
           </div>
           <p class="mt-4 max-w-xl text-muted">{pet.description}</p>
           <div class="mt-6 flex flex-wrap gap-x-8 gap-y-3">
-            <div><div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="heart" class="h-5 w-5 text-accent-500" />{likes}</div><div class="text-xs text-faint">likes</div></div>
-            <div><div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="download" class="h-5 w-5 text-brand-500" />{downloads.toLocaleString()}</div><div class="text-xs text-faint">downloads</div></div>
-            <div><div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="monitor" class="h-5 w-5 text-emerald-500" />{usage.toLocaleString()}</div><div class="text-xs text-faint">in use now</div></div>
+            <div><div class="flex items-center gap-1.5 font-display text-2xl font-bold text-ink"><Icon name="heart" class="h-5 w-5 text-accent-500" /><span data-like-count data-slug={slug}>0</span></div><div class="text-xs text-faint">likes</div></div>
           </div>
           <div class="mt-7 flex flex-wrap gap-3">
+            <button type="button" data-like-btn data-slug={slug} aria-pressed="false" class="ap-like btn-ghost !px-6 !py-3"><Icon name="heart" class="ap-like-icon h-5 w-5" /> <span class="ap-like-label">Like</span></button>
             <a href="/install" class="btn-primary !px-6 !py-3"><Icon name="download" class="h-5 w-5" /> Adopt in AgentPet</a>
             <a href={GITHUB} target="_blank" rel="noopener" class="btn-ghost !px-6 !py-3"><Icon name="github" class="h-4 w-4" /> Source</a>
           </div>

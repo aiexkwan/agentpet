@@ -186,5 +186,53 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
       document.addEventListener("click", () => menu?.classList.add("hidden"));
     })();
   </script>
+
+  <script>
+    // Real like counts + like buttons. Counts come from /api/stats.json; liking
+    // requires a session (POST /api/like), otherwise we send the user to sign in.
+    (() => {
+      function setLiked(btn: Element, liked: boolean) {
+        const b = btn as HTMLElement;
+        b.setAttribute("aria-pressed", liked ? "true" : "false");
+        b.style.color = liked ? "var(--color-accent-600)" : "";
+        b.style.borderColor = liked ? "var(--color-accent-400)" : "";
+        const label = b.querySelector(".ap-like-label");
+        if (label) label.textContent = liked ? "Liked" : "Like";
+      }
+      function setCount(slug: string, n: number) {
+        document.querySelectorAll(`[data-like-count][data-slug="${slug}"]`).forEach((el) => { el.textContent = String(n); });
+      }
+      async function refresh() {
+        let data: any = { likes: {}, mine: [] };
+        try { data = await (await fetch("/api/stats.json", { cache: "no-store" })).json(); } catch {}
+        const likes = data.likes || {};
+        const mine = new Set(data.mine || []);
+        document.querySelectorAll("[data-like-count][data-slug]").forEach((el) => {
+          const slug = el.getAttribute("data-slug")!;
+          el.textContent = String(likes[slug] || 0);
+        });
+        document.querySelectorAll("[data-like-btn][data-slug]").forEach((btn) => {
+          setLiked(btn, mine.has(btn.getAttribute("data-slug")));
+        });
+      }
+      document.addEventListener("click", async (e) => {
+        const btn = (e.target as HTMLElement).closest("[data-like-btn][data-slug]") as HTMLElement | null;
+        if (!btn) return;
+        e.preventDefault();
+        const slug = btn.getAttribute("data-slug")!;
+        btn.setAttribute("disabled", "true");
+        try {
+          const res = await fetch("/api/like", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slug }) });
+          if (res.status === 401) { location.href = "/api/auth/login?returnTo=" + encodeURIComponent(location.pathname); return; }
+          const d: any = await res.json();
+          if (typeof d.likes === "number") setCount(slug, d.likes);
+          setLiked(btn, !!d.liked);
+        } catch {}
+        finally { btn.removeAttribute("disabled"); }
+      });
+      (window as any).apRefreshLikes = refresh;
+      refresh();
+    })();
+  </script>
 </body>
 </html>
