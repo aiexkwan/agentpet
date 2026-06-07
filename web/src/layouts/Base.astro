@@ -164,10 +164,13 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
     (() => {
       let mineSet = new Set<string>();
 
-      function renderAvatar(user: { login: string; avatar: string }) {
+      function renderAvatar(user: { login: string; avatar: string; isAdmin?: boolean }) {
         const slot = document.getElementById("ap-auth");
         if (!slot) return;
         const login = String(user.login).replace(/[^a-zA-Z0-9-]/g, "");
+        const adminLink = user.isAdmin
+          ? `<a href="/admin" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Pet admin</a>`
+          : "";
         slot.innerHTML = `
           <div class="relative">
             <button id="ap-avatar" type="button" class="flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-3 shadow-soft transition hover:border-brand-300">
@@ -176,6 +179,7 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
             </button>
             <div id="ap-menu" class="absolute right-0 z-50 mt-2 hidden w-48 rounded-2xl border border-line bg-white p-2 shadow-card">
               <div class="px-3 py-2 text-xs text-faint">Signed in as <b class="text-ink">${login}</b></div>
+              ${adminLink}
               <a href="/api/auth/logout" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Sign out</a>
             </div>
           </div>`;
