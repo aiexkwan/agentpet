@@ -105,6 +105,32 @@ const GITHUB = "https://github.com/ntd4996/agentpet";
         </div>
       </div>
 
+      <!-- dex stats: derived from real signals (likes, installs, frames, states) -->
+      <div class="card mt-6 p-6" id="dexStats" data-slug={slug}>
+        <div class="mb-4 flex items-center gap-2">
+          <span class="grid h-8 w-8 place-items-center rounded-xl bg-brand-50 text-brand-600"><Icon name="bolt" class="h-4 w-4" /></span>
+          <h2 class="font-display text-xl font-bold text-ink">Dex stats</h2>
+        </div>
+        <div class="grid gap-x-8 gap-y-4 sm:grid-cols-2">
+          {[
+            { key: "loved", label: "Loved", color: "bg-accent-500" },
+            { key: "popular", label: "Popular", color: "bg-brand-500" },
+            { key: "animated", label: "Animated", color: "bg-emerald-500" },
+            { key: "states", label: "States", color: "bg-amber-500" },
+          ].map((s) => (
+            <div>
+              <div class="flex items-baseline justify-between text-xs">
+                <span class="font-pixel uppercase tracking-wide text-faint">{s.label}</span>
+                <span data-stat-val={s.key} class="font-display font-semibold text-ink">0</span>
+              </div>
+              <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-brand-50">
+                <div data-stat-bar={s.key} class={`h-full rounded-full ${s.color} transition-all duration-700`} style="width:0%"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <!-- state viewer: every animation in the pack, click to preview -->
       <div class="mt-8">
         <div class="mb-3 flex items-center justify-between gap-2 px-1">
@@ -189,6 +215,24 @@ const GITHUB = "https://github.com/ntd4996/agentpet";
       ctx.drawImage(img, f.x, f.y, f.w, f.h, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
     }
 
+    // Dex stat bars (real signals). `sat` is a saturating curve for unbounded counts.
+    function setBar(key: string, pct: number, label: string | number) {
+      const bar = document.querySelector(`[data-stat-bar="${key}"]`) as HTMLElement | null;
+      const val = document.querySelector(`[data-stat-val="${key}"]`) as HTMLElement | null;
+      if (bar) bar.style.width = Math.max(0, Math.min(100, pct)) + "%";
+      if (val) val.textContent = String(label);
+    }
+    const sat = (n: number) => Math.round(100 * (1 - 1 / (1 + n / 6)));
+    const dex = document.getElementById("dexStats");
+    if (dex) {
+      const dslug = dex.dataset.slug!;
+      fetch("/api/stats.json").then((r) => r.json()).then((s: any) => {
+        const likes = (s.likes || {})[dslug] || 0, installs = (s.installs || {})[dslug] || 0;
+        setBar("loved", sat(likes), likes);
+        setBar("popular", sat(installs), installs);
+      }).catch(() => {});
+    }
+
     const main = document.getElementById("mainCanvas") as HTMLCanvasElement | null;
     const grid = document.getElementById("stateGrid");
     if (main && grid) {
@@ -218,6 +262,9 @@ const GITHUB = "https://github.com/ntd4996/agentpet";
         const r = sliceRows(img); if (!r || !r.length) return;
         rows = r;
         setText("stateCount", String(rows.length));
+        const totalFrames = rows.reduce((a, f) => a + f.length, 0);
+        setBar("animated", Math.round((totalFrames / 72) * 100), totalFrames);
+        setBar("states", Math.round((rows.length / 9) * 100), rows.length);
         grid.innerHTML = "";
         rows.forEach((frames, i) => {
           const name = NAMES[i] ?? `State ${i + 1}`;
