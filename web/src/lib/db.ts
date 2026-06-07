@@ -26,8 +26,21 @@ export async function ensureSchema(db: any): Promise<void> {
     db.prepare("CREATE TABLE IF NOT EXISTS pet_stats (slug TEXT PRIMARY KEY, likes INTEGER NOT NULL DEFAULT 0)"),
     db.prepare("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, login TEXT, avatar TEXT, updated_at INTEGER NOT NULL DEFAULT 0)"),
     db.prepare("CREATE TABLE IF NOT EXISTS pet_overrides (slug TEXT PRIMARY KEY, kind TEXT, hidden INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS pet_installs (slug TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0)"),
   ]);
   ready = true;
+}
+
+// Bump a pet's install counter (the desktop app pings this on a successful install).
+// Returns the new total.
+export async function incrementInstall(db: any, slug: string): Promise<number> {
+  if (!db) return 0;
+  await db
+    .prepare("INSERT INTO pet_installs (slug, count, updated_at) VALUES (?, 1, ?) ON CONFLICT(slug) DO UPDATE SET count=count+1, updated_at=excluded.updated_at")
+    .bind(slug, Date.now())
+    .run();
+  const r: any = await db.prepare("SELECT count FROM pet_installs WHERE slug=?").bind(slug).first();
+  return r?.count ?? 0;
 }
 
 // All admin overrides as a map (small table: only edited/hidden pets have rows).

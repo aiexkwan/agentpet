@@ -204,8 +204,12 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
       async function fillLikes() {
         const s: any = await fetch("/api/stats.json").then((r) => r.json()).catch(() => ({}));
         const likes = s.likes || {};
+        const installs = s.installs || {};
         document.querySelectorAll("[data-like-count][data-slug]").forEach((el) => {
           el.textContent = String(likes[el.getAttribute("data-slug")!] || 0);
+        });
+        document.querySelectorAll("[data-install-count][data-slug]").forEach((el) => {
+          el.textContent = String(installs[el.getAttribute("data-slug")!] || 0);
         });
         document.querySelectorAll("[data-like-btn][data-slug]").forEach((btn) => setLiked(btn, mineSet.has(btn.getAttribute("data-slug")!)));
       }
