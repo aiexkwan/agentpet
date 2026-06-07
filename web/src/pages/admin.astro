@@ -25,7 +25,8 @@ const FILTERS = ["all", ...KIND_OPTIONS, "hidden"];
         <div class="flex items-center gap-2">
           <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600"><Icon name="wand" class="h-5 w-5" /></span>
           <h1 class="font-display text-2xl font-bold text-ink">Pet admin</h1>
-          <span class="ml-auto text-sm text-muted">Signed in as <b class="text-ink">{user.login}</b></span>
+          <a href="/admin/submissions" class="ml-auto btn-ghost !px-4 !py-2 text-sm"><Icon name="wand" class="h-4 w-4" /> Review submissions</a>
+          <span class="text-sm text-muted">Signed in as <b class="text-ink">{user.login}</b></span>
         </div>
         <p class="mt-2 text-muted">Edit a pet's category, or hide it from the public gallery. Changes go live within a minute.</p>
 
