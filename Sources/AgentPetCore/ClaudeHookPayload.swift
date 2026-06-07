@@ -8,6 +8,9 @@ public struct ClaudeHookPayload: Decodable, Equatable {
     public let hookEventName: String?
     public let message: String?
     public let toolName: String?
+    public let toolInput: ClaudeToolInput?
+    /// Absolute path to the conversation's JSONL transcript file.
+    public let transcriptPath: String?
 
     enum CodingKeys: String, CodingKey {
         case sessionId = "session_id"
@@ -15,6 +18,8 @@ public struct ClaudeHookPayload: Decodable, Equatable {
         case hookEventName = "hook_event_name"
         case message
         case toolName = "tool_name"
+        case toolInput = "tool_input"
+        case transcriptPath = "transcript_path"
     }
 
     public static func decode(from data: Data) -> ClaudeHookPayload? {
@@ -25,11 +30,16 @@ public struct ClaudeHookPayload: Decodable, Equatable {
     /// fields (session id and event name) are missing.
     public func makeEvent(now: Date, kind: AgentKind = .claude) -> AgentEvent? {
         guard let sessionId, let hookEventName else { return nil }
-        // Surface the running tool name when there's no explicit message.
-        let context = message ?? toolName.map { "Using \($0)" }
+        let context = ClaudeActivityFormatter.activityMessage(
+            eventName: hookEventName,
+            sessionId: sessionId,
+            toolName: toolName,
+            toolInput: toolInput,
+            explicitMessage: message
+        ) ?? toolName.map { "Using \($0)" }
         return AgentEvent(
             sessionId: sessionId, agentKind: kind, eventName: hookEventName,
-            project: cwd, message: context, timestamp: now
+            project: cwd, message: context, transcriptPath: transcriptPath, timestamp: now
         )
     }
 }

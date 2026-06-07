@@ -53,10 +53,63 @@ final class AppDaemon: ObservableObject {
 
     private func ingest(_ event: AgentEvent) {
         let before = store.session(id: event.sessionId)?.state
-        if let updated = store.apply(event, now: Date()) {
+        guard let updated = store.apply(event, now: Date()) else {
+            refresh()
+            return
+        }
+        resolveTitle(for: event)
+
+        // Claude's Stop hook fires identically whether the agent is truly
+        // done or just ended its turn by asking the user a question — hold
+        // the notification until an async transcript check resolves, so we
+        // fire exactly one notification reflecting the true final state.
+        if event.agentKind == .claude, event.eventName == "Stop", updated.state == .done {
+            refineDoneIfQuestion(event: event, before: before, session: updated)
+        } else {
             notifyIfNeeded(before: before, session: updated)
         }
         refresh()
+    }
+
+    /// Reads the transcript off-thread to check whether Claude ended its turn
+    /// by asking the user something; if so, corrects `.done` to `.waiting`.
+    /// Either way, fires the (single, final-state) notification afterwards.
+    private func refineDoneIfQuestion(event: AgentEvent, before: AgentState?, session: AgentSession) {
+        let sessionId = event.sessionId
+        let stateSince = session.stateSince
+        let path: String? = event.transcriptPath
+            ?? event.project.map { TranscriptReader.inferredPath(sessionId: sessionId, cwd: $0) }
+        guard let path else {
+            notifyIfNeeded(before: before, session: session)
+            return
+        }
+        Task.detached(priority: .utility) { [weak self] in
+            let isQuestion = TranscriptReader.latestAssistantText(at: path)
+                .map(QuestionDetector.looksLikeQuestion) ?? false
+            await MainActor.run { [weak self] in
+                guard let self else { return }
+                if isQuestion {
+                    self.store.refineState(id: sessionId, from: .done, to: .waiting, since: stateSince)
+                }
+                guard let final = self.store.session(id: sessionId) else { return }
+                self.notifyIfNeeded(before: before, session: final)
+                self.refresh()
+            }
+        }
+    }
+
+    private func resolveTitle(for event: AgentEvent) {
+        let sessionId = event.sessionId
+        let path: String? = event.transcriptPath
+            ?? event.project.map { TranscriptReader.inferredPath(sessionId: sessionId, cwd: $0) }
+        guard let path else { return }
+        Task.detached(priority: .utility) { [weak self] in
+            guard let title = TranscriptReader.title(at: path) else { return }
+            await MainActor.run { [weak self] in
+                self?.store.updateTitle(id: sessionId, title: title)
+                self?.refresh()
+            }
+        }
     }
 
     private func notifyIfNeeded(before: AgentState?, session: AgentSession) {

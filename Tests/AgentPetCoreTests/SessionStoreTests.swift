@@ -9,7 +9,8 @@ final class StateMapperTests: XCTestCase {
         XCTAssertEqual(StateMapper.state(for: .claude, eventName: "PostToolUse"), .working)
         XCTAssertEqual(StateMapper.state(for: .claude, eventName: "Notification"), .waiting)
         XCTAssertEqual(StateMapper.state(for: .claude, eventName: "Stop"), .done)
-        XCTAssertEqual(StateMapper.state(for: .claude, eventName: "SubagentStop"), .done)
+        XCTAssertNil(StateMapper.state(for: .claude, eventName: "SubagentStop"),
+                     "a subagent finishing mid-task must not change the main session's state")
     }
 
     func testUnknownEventIsIgnored() {
@@ -38,10 +39,16 @@ final class StateMapperTests: XCTestCase {
     }
 
     func testHookSpecsCoverInstallEvents() {
-        // Every event we register must either map to a state or end the session.
+        // Every event we register must either map to a state, end the session,
+        // or be an intentionally-ignored event (documented here).
+        let intentionallyIgnored: [AgentKind: Set<String>] = [
+            .claude: ["SubagentStop"]
+        ]
         for kind in [AgentKind.claude, .codex, .gemini] {
             let spec = AgentHooks.spec(for: kind)!
-            for event in spec.events where !StateMapper.isSessionEnd(for: kind, eventName: event) {
+            let ignored = intentionallyIgnored[kind] ?? []
+            for event in spec.events
+            where !StateMapper.isSessionEnd(for: kind, eventName: event) && !ignored.contains(event) {
                 XCTAssertNotNil(StateMapper.state(for: kind, eventName: event), "\(kind) \(event)")
             }
         }
@@ -77,6 +84,41 @@ final class SessionStoreTests: XCTestCase {
         let store = SessionStore()
         XCTAssertNil(store.apply(event("Bogus"), now: t0))
         XCTAssertEqual(store.sessions.count, 0)
+    }
+
+    func testRefineStateAppliesWhenStateAndSinceStillMatch() {
+        let store = SessionStore()
+        let applied = store.apply(event("Stop"), now: t0)
+        XCTAssertEqual(applied?.state, .done)
+
+        store.refineState(id: "s1", from: .done, to: .waiting, since: applied!.stateSince)
+
+        let refined = store.session(id: "s1")
+        XCTAssertEqual(refined?.state, .waiting)
+        XCTAssertEqual(refined?.stateSince, applied!.stateSince,
+                       "correction preserves the original transition time")
+    }
+
+    func testRefineStateNoOpsWhenANewerEventAlreadyChangedState() {
+        let store = SessionStore()
+        let applied = store.apply(event("Stop"), now: t0)
+        store.apply(event("UserPromptSubmit"), now: t0.addingTimeInterval(2))   // user replied -> working
+
+        store.refineState(id: "s1", from: .done, to: .waiting, since: applied!.stateSince)
+
+        XCTAssertEqual(store.session(id: "s1")?.state, .working,
+                       "a newer transition must never be clobbered by a stale correction")
+    }
+
+    func testRefineStateNoOpsWhenSinceNoLongerMatches() {
+        let store = SessionStore()
+        let applied = store.apply(event("Stop"), now: t0)
+        let staleSince = applied!.stateSince.addingTimeInterval(-10)
+
+        store.refineState(id: "s1", from: .done, to: .waiting, since: staleSince)
+
+        XCTAssertEqual(store.session(id: "s1")?.state, .done,
+                       "a `since` mismatch means this correction targets a transition that's gone")
     }
 
     func testPruneDemotesDoneToIdle() {

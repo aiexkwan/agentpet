@@ -27,7 +27,11 @@ public enum StateMapper {
             case "SessionStart": return .registered
             case "UserPromptSubmit", "PreToolUse", "PostToolUse": return .working
             case "Notification": return .waiting
-            case "Stop", "SubagentStop": return .done
+            case "Stop": return .done
+            // SubagentStop fires when a Task() subagent finishes mid-session —
+            // not when the main session is done. Ignoring it (nil = "no state
+            // change") avoids a false done→working flicker.
+            case "SubagentStop": return nil
             default: return nil
             }
         case .codex:
