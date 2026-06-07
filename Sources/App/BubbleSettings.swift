@@ -269,7 +269,10 @@ final class BubbleSettings: ObservableObject {
     /// When enabled, active sessions render with the structured multi-agent
     /// bubble. When off, AgentPet keeps the default chat bubble behavior.
     @Published var multiAgentBubbleEnabled: Bool {
-        didSet { ud.set(multiAgentBubbleEnabled, forKey: Keys.multiAgentBubbleEnabled) }
+        didSet {
+            ud.set(multiAgentBubbleEnabled, forKey: Keys.multiAgentBubbleEnabled)
+            PetController.shared.applyBubbleModeChange()
+        }
     }
     @Published var hiddenKinds: Set<AgentKind> {
         didSet { saveJSON(Keys.hiddenKinds, Array(hiddenKinds).map(\.rawValue)) }

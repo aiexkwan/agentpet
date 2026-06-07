@@ -117,10 +117,28 @@ final class PetController: ObservableObject {
         setMood(resolved)
 
         if resolved == .working || resolved == .waiting {
-            buildAgentChatLine(sessions: sessions)
+            if BubbleSettings.shared.multiAgentBubbleEnabled {
+                buildAgentChatLine(sessions: sessions)
+            } else {
+                chatLineCount = 0
+                activeAgentSessions = []
+                refreshChat()
+            }
         } else {
             chatLineCount = 0
             activeAgentSessions = []
+        }
+    }
+
+    /// Rebuilds chat state when the user toggles multi-agent bubble mode.
+    func applyBubbleModeChange() {
+        guard mood == .working || mood == .waiting else { return }
+        if BubbleSettings.shared.multiAgentBubbleEnabled {
+            buildAgentChatLine(sessions: latestSessions)
+        } else {
+            chatLineCount = 0
+            activeAgentSessions = []
+            refreshChat()
         }
     }
 
@@ -144,10 +162,10 @@ final class PetController: ObservableObject {
             StatusBarController.shared.refreshTitle()
             return
         }
-        // During working/waiting the agent list owns chatLine; fall back to
-        // PetChat for celebrate/done.
-        if (mood == .working || mood == .waiting) && chatLineCount > 0 {
-            // chatLine already set by buildAgentChatLine — just refresh status bar
+        // Multi-agent mode owns chatLine during working/waiting; otherwise use PetChat.
+        if (mood == .working || mood == .waiting)
+            && BubbleSettings.shared.multiAgentBubbleEnabled
+            && chatLineCount > 0 {
             StatusBarController.shared.refreshTitle()
             return
         }

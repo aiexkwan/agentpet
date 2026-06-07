@@ -15,7 +15,6 @@ struct BubbleSettingsView: View {
         Form {
             modeSection
             if settings.multiAgentBubbleEnabled {
-                previewSection
                 agentsSection
                 rowLayoutSection
                 iconsSection
@@ -100,20 +99,7 @@ struct BubbleSettingsView: View {
         }
     }
 
-    // MARK: - 2. Preview
-
-    private var previewSection: some View {
-        Section {
-            BubbleRowPreview()
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } header: {
-            Text("Preview")
-        } footer: {
-            Text("Sample row using your current layout and style settings.")
-        }
-    }
-
-    // MARK: - 3. Agents — what to show
+    // MARK: - 2. Agents — what to show
 
     private var agentsSection: some View {
         Group {
@@ -192,7 +178,7 @@ struct BubbleSettingsView: View {
         return "Max \(noun): \(settings.maxSessions)"
     }
 
-    // MARK: - 4. Row layout — tokens & order
+    // MARK: - 3. Row layout — preview + tokens
 
     private var inactiveTokens: [BubbleToken] {
         BubbleToken.allCases.filter { token in
@@ -206,6 +192,15 @@ struct BubbleSettingsView: View {
 
     private var rowLayoutSection: some View {
         Section {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Preview")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                BubbleRowPreview()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.bottom, 4)
+
             if inactiveTokens.isEmpty {
                 Text("All tokens are in use")
                     .font(.caption)
@@ -269,7 +264,7 @@ struct BubbleSettingsView: View {
         } header: {
             Text("Row content")
         } footer: {
-            Text("Tap to add · drag to reorder · × to remove. Controls what each agent row shows.")
+            Text("Preview updates as you add, remove, or reorder tokens below.")
         }
     }
 
@@ -291,7 +286,7 @@ struct BubbleSettingsView: View {
         }
     }
 
-    // MARK: - 5. Icons
+    // MARK: - 4. Icons
 
     private var iconsSection: some View {
         Section {
@@ -309,7 +304,7 @@ struct BubbleSettingsView: View {
         }
     }
 
-    // MARK: - 6. Style
+    // MARK: - 5. Style
 
     private var styleSection: some View {
         Section {
@@ -366,7 +361,7 @@ struct BubbleSettingsView: View {
         }
     }
 
-    // MARK: - 7. Activity phrases
+    // MARK: - 6. Activity phrases
 
     private var activitySection: some View {
         Section {

@@ -151,8 +151,8 @@ struct AgentBubble: View {
     }
 
     var body: some View {
-        let fill = isPetChat ? Color.white : bubbleFill
-        let stroke = isPetChat ? Color.black.opacity(0.06) : borderColor
+        let fill = bubbleFill
+        let stroke = borderColor
 
         VStack(spacing: 0) {
             if tailEdge == .top {
@@ -232,7 +232,6 @@ struct AgentBubble: View {
     }
 
     private func textColor(_ opacity: Double) -> Color {
-        if isPetChat { return .black.opacity(opacity) }
         switch settings.theme {
         case .light:  return .black.opacity(opacity)
         case .dark:   return .white.opacity(opacity)
@@ -246,6 +245,7 @@ struct AgentBubble: View {
 private struct BubbleCarousel: View {
     let groups: [GroupedSession]
     var chatStyle: Bool = false
+    @ObservedObject private var settings = BubbleSettings.shared
     @State private var index = 0
     @State private var timer: Timer?
     @State private var dragOffset: CGFloat = 0
@@ -318,13 +318,16 @@ private struct BubbleCarousel: View {
             }
     }
 
-    private var dotActive: Color {
-        chatStyle ? .black.opacity(0.55) : Color.primary.opacity(0.7)
+    private func dotColor(_ opacity: Double) -> Color {
+        switch settings.theme {
+        case .light:  return .black.opacity(opacity)
+        case .dark:   return .white.opacity(opacity)
+        case .system: return Color.primary.opacity(opacity)
+        }
     }
 
-    private var dotInactive: Color {
-        chatStyle ? .black.opacity(0.2) : Color.primary.opacity(0.25)
-    }
+    private var dotActive: Color { dotColor(0.7) }
+    private var dotInactive: Color { dotColor(0.25) }
 
     private func step(by delta: Int) {
         guard groups.count > 1 else { return }
@@ -410,6 +413,7 @@ private struct BubbleCompactLayout: View {
     let totalCount: Int
     var chatStyle: Bool = false
     let textColor: (Double) -> Color
+    @ObservedObject private var settings = BubbleSettings.shared
     @State private var expanded = false
 
     private let visibleRows = 2
@@ -417,7 +421,7 @@ private struct BubbleCompactLayout: View {
     var body: some View {
         VStack(alignment: .leading, spacing: chatStyle ? 4 : 5) {
             Text(summaryLabel)
-                .font(.system(size: chatStyle ? 10 : 10.5, weight: .semibold))
+                .font(.system(size: settings.fontSize.secondaryPt, weight: .semibold))
                 .foregroundStyle(textColor(0.45))
 
             ForEach(visibleGroups) { group in
@@ -427,7 +431,7 @@ private struct BubbleCompactLayout: View {
             if hiddenCount > 0 {
                 Button(action: { withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() } }) {
                     Text(expanded ? "Show less" : "+\(hiddenCount) more")
-                        .font(.system(size: chatStyle ? 10 : 10.5, weight: .medium))
+                        .font(.system(size: settings.fontSize.secondaryPt, weight: .medium))
                         .foregroundStyle(textColor(0.5))
                 }
                 .buttonStyle(.plain)
@@ -468,9 +472,9 @@ private struct AgentRow: View {
     var chatStyle: Bool = false
     @ObservedObject private var settings = BubbleSettings.shared
 
-    private var primaryPt: CGFloat { chatStyle ? 12 : settings.fontSize.primaryPt }
-    private var secondaryPt: CGFloat { chatStyle ? 10.5 : settings.fontSize.secondaryPt }
-    private var iconPt: CGFloat { chatStyle ? 14 : settings.fontSize.iconPt }
+    private var primaryPt: CGFloat { settings.fontSize.primaryPt }
+    private var secondaryPt: CGFloat { settings.fontSize.secondaryPt }
+    private var iconPt: CGFloat { settings.fontSize.iconPt }
     private var rowMaxWidth: CGFloat {
         chatStyle ? AgentBubble.petContentMaxWidth : AgentBubble.contentMaxWidth
     }
@@ -564,7 +568,6 @@ private struct AgentRow: View {
     }
 
     private func textColor(_ opacity: Double) -> Color {
-        if chatStyle { return .black.opacity(opacity) }
         switch settings.theme {
         case .light:  return .black.opacity(opacity)
         case .dark:   return .white.opacity(opacity)
@@ -619,7 +622,7 @@ private struct ChatBubble: View {
             Text(text)
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(.black.opacity(0.85))
-                .lineLimit(2)
+                .lineLimit(1)
                 .truncationMode(.tail)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 7)
