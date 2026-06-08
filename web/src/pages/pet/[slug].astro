@@ -33,7 +33,6 @@ const kind = entry?.kind || pet.category || "creature";
 const author = String(entry?.submittedBy || pet.submittedBy || "").trim() || "community";
 const tags = Array.from(new Set([TRAITS[f % TRAITS.length], TRAITS[(f >>> 5) % TRAITS.length]])).filter(Boolean);
 const featured = f % 4 === 0;
-const GITHUB = "https://github.com/ntd4996/agentpet";
 
 // Dex stats radar geometry (fixed; the data polygon is drawn client-side).
 const RADAR = { cx: 120, cy: 120, r: 90 };
@@ -75,8 +74,8 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
           </div>
           <!-- checker-backed preview, like a sprite editor canvas -->
           <div class="relative mx-6 mt-3 grid place-items-center rounded-2xl border border-line p-4 sprite-checker">
-            <canvas id="mainCanvas" class="h-56 w-full cursor-pointer" width="320" height="260" data-sheet={`/api/sprite/${slug}`} title="Tap to cycle states"></canvas>
-            <span class="pointer-events-none absolute bottom-2 right-2 rounded-full bg-white/85 px-2 py-0.5 font-pixel text-[9px] tracking-wide text-faint shadow-sm">TAP TO CYCLE</span>
+            <canvas id="mainCanvas" class="h-56 w-full cursor-grab touch-none select-none" width="320" height="260" data-sheet={`/api/sprite/${slug}`} title="Drag to move, tap to cycle states"></canvas>
+            <span class="pointer-events-none absolute bottom-2 right-2 rounded-full bg-white/85 px-2 py-0.5 font-pixel text-[9px] tracking-wide text-faint shadow-sm">DRAG · TAP</span>
           </div>
           <div class="px-6 pb-5 pt-4">
             <div class="flex items-center justify-between">
@@ -116,7 +115,6 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
             <a href="/install" class="btn-primary !px-6 !py-3"><Icon name="download" class="h-5 w-5" /> Adopt in AgentPet</a>
             <button type="button" data-like-btn data-slug={slug} aria-pressed="false" class="ap-like btn-ghost !px-6 !py-3"><Icon name="heart" class="ap-like-icon h-5 w-5" /> <span class="ap-like-label">Like</span></button>
             <button type="button" id="shareBtn" class="btn-ghost !px-5 !py-3"><Icon name="share" class="h-4 w-4" /> <span id="shareLabel">Share</span></button>
-            <a href={GITHUB} target="_blank" rel="noopener" class="btn-ghost !px-5 !py-3"><Icon name="github" class="h-4 w-4" /> Source</a>
           </div>
         </div>
       </div>
@@ -166,7 +164,7 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
       </div>
 
       <!-- similar pets -->
-      <div class="mt-10" id="similarWrap" data-slug={slug} data-kind={kind}>
+      <div class="mt-10" id="similarWrap" data-slug={slug} data-kind={kind} data-collections={inCollections.map((c) => c.slug).join(",")}>
         <div class="mb-3 flex items-center gap-2 px-1">
           <Icon name="sparkles" class="h-5 w-5 text-brand-500" />
           <h2 class="font-display text-2xl font-bold text-ink">More like this</h2>
@@ -229,10 +227,10 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
       }
       return rows;
     }
-    function drawFrame(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, img: HTMLImageElement, f: Frame, fill: number) {
+    function drawFrame(ctx: CanvasRenderingContext2D, cv: HTMLCanvasElement, img: HTMLImageElement, f: Frame, fill: number, ox = 0, oy = 0) {
       ctx.clearRect(0, 0, cv.width, cv.height);
       const s = Math.min(cv.width / f.w, cv.height / f.h) * fill, dw = f.w * s, dh = f.h * s;
-      ctx.drawImage(img, f.x, f.y, f.w, f.h, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+      ctx.drawImage(img, f.x, f.y, f.w, f.h, (cv.width - dw) / 2 + ox, (cv.height - dh) / 2 + oy, dw, dh);
     }
 
     // Dex stats radar. Values are 0-100; `sat` is a saturating curve for unbounded
@@ -274,15 +272,16 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
       const img = new Image();
       let rows: Frame[][] = [];
       let timer: number | null = null;
-      let cur = 0;
+      let cur = 0, frameIdx = 0, ox = 0, oy = 0;
 
       const setText = (id: string, t: string) => { const el = document.getElementById(id); if (el) el.textContent = t; };
+      const drawCur = () => { const fr = rows[cur]; if (fr) drawFrame(mctx, main, img, fr[frameIdx % fr.length], 0.92, ox, oy); };
       const play = (i: number) => {
-        cur = i;
+        cur = i; frameIdx = 0;
         if (timer) { clearInterval(timer); timer = null; }
         const frames = rows[i]; if (!frames) return;
-        let idx = 0; drawFrame(mctx, main, img, frames[0], 0.92);
-        if (frames.length > 1) timer = window.setInterval(() => { idx = (idx + 1) % frames.length; drawFrame(mctx, main, img, frames[idx], 0.92); }, 150);
+        drawCur();
+        if (frames.length > 1) timer = window.setInterval(() => { frameIdx = (frameIdx + 1) % frames.length; drawCur(); }, 150);
         const name = NAMES[i] ?? `State ${i + 1}`;
         setText("viewerState", name);
         setText("viewerFrames", frames.length + (frames.length === 1 ? " frame" : " frames"));
@@ -327,7 +326,23 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
         play(0);
       };
       img.src = main.dataset.sheet!;
-      main.addEventListener("click", () => { if (rows.length) play((cur + 1) % rows.length); });
+
+      // Drag the pet around the stage (pointer); a no-move release = tap to cycle state.
+      let dragging = false, moved = false, sx = 0, sy = 0;
+      const clampX = main.width * 0.42, clampY = main.height * 0.42;
+      main.addEventListener("pointerdown", (e) => { dragging = true; moved = false; sx = e.clientX; sy = e.clientY; main.classList.add("cursor-grabbing"); try { main.setPointerCapture(e.pointerId); } catch {} });
+      main.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const rect = main.getBoundingClientRect();
+        const dx = (e.clientX - sx) * (main.width / rect.width), dy = (e.clientY - sy) * (main.height / rect.height);
+        if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 4) moved = true;
+        ox = Math.max(-clampX, Math.min(clampX, ox + dx)); oy = Math.max(-clampY, Math.min(clampY, oy + dy));
+        sx = e.clientX; sy = e.clientY; drawCur();
+      });
+      const endDrag = (e: PointerEvent) => { if (!dragging) return; dragging = false; main.classList.remove("cursor-grabbing"); try { main.releasePointerCapture(e.pointerId); } catch {} };
+      main.addEventListener("pointerup", endDrag);
+      main.addEventListener("pointercancel", endDrag);
+      main.addEventListener("click", () => { if (!moved && rows.length) play((cur + 1) % rows.length); });
     }
 
     // Share: native share where available, else copy the link.
@@ -371,21 +386,35 @@ const axisLabels = AXES.map((a) => ({ ...a, p: rpt(a.ang, RADAR.r + 17) }));
     }
     const simWrap = document.getElementById("similarWrap");
     if (simWrap) {
-      const curSlug = simWrap.dataset.slug, curKind = simWrap.dataset.kind;
+      const curSlug = simWrap.dataset.slug!, curKind = simWrap.dataset.kind;
+      const cols = (simWrap.dataset.collections || "").split(",").filter(Boolean);
       const escS = (s: string) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-      fetch("/api/pets.json").then((r) => r.json()).then((d: any) => {
-        let pool = (d.pets || []).filter((p: any) => p.slug !== curSlug && p.kind === curKind);
-        for (let k = pool.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [pool[k], pool[j]] = [pool[j], pool[k]]; }
-        pool = pool.slice(0, 5);
+      (async () => {
+        const pj: any = await fetch("/api/pets.json").then((r) => r.json()).catch(() => ({ pets: [] }));
+        const nameOf: Record<string, string> = {};
+        for (const p of pj.pets || []) nameOf[p.slug] = p.name;
+        // Prefer pets from a collection this pet belongs to; fall back to same kind.
+        let candidates: string[] = [];
+        let heading = "More like this";
+        if (cols.length) {
+          const col = cols[Math.floor(Math.random() * cols.length)];
+          const cd: any = await fetch("/api/collection/" + col + ".json").then((r) => r.json()).catch(() => ({ slugs: [] }));
+          candidates = (cd.slugs || []).filter((s: string) => s !== curSlug && nameOf[s]);
+          if (cd.title) heading = "More from " + cd.title;
+        }
+        if (!candidates.length) { candidates = (pj.pets || []).filter((p: any) => p.slug !== curSlug && p.kind === curKind).map((p: any) => p.slug); heading = "More like this"; }
+        for (let k = candidates.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [candidates[k], candidates[j]] = [candidates[j], candidates[k]]; }
+        candidates = candidates.slice(0, 5);
         const g = document.getElementById("similarGrid"); if (!g) return;
-        if (!pool.length) { simWrap.classList.add("hidden"); return; }
-        g.innerHTML = pool.map((p: any) => `
-          <a href="/pet/${escS(p.slug)}" class="card group flex flex-col overflow-hidden p-0 transition hover:-translate-y-1">
-            <div class="m-2 mb-0 grid aspect-square place-items-center rounded-2xl border border-line sprite-checker p-2"><canvas class="sim-thumb h-full w-full" width="150" height="150" data-sheet="/api/sprite/${escS(p.slug)}"></canvas></div>
-            <div class="truncate px-3 py-2 text-center font-display text-sm font-semibold text-ink">${escS(p.name)}</div>
+        if (!candidates.length) { simWrap.classList.add("hidden"); return; }
+        const hEl = simWrap.querySelector("h2"); if (hEl) hEl.textContent = heading;
+        g.innerHTML = candidates.map((s) => `
+          <a href="/pet/${escS(s)}" class="card group flex flex-col overflow-hidden p-0 transition hover:-translate-y-1">
+            <div class="m-2 mb-0 grid aspect-square place-items-center rounded-2xl border border-line sprite-checker p-2"><canvas class="sim-thumb h-full w-full" width="150" height="150" data-sheet="/api/sprite/${escS(s)}"></canvas></div>
+            <div class="truncate px-3 py-2 text-center font-display text-sm font-semibold text-ink">${escS(nameOf[s] || s)}</div>
           </a>`).join("");
         g.querySelectorAll<HTMLCanvasElement>(".sim-thumb").forEach(setupSimThumb);
-      }).catch(() => {});
+      })();
     }
   </script>
 </Base>
