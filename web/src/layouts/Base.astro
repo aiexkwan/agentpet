@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import Icon from "../components/Icon.astro";
+import SurprisePet from "../components/SurprisePet.astro";
 interface Props { title?: string; description?: string; active?: string; }
 const { title = "AgentPet", description = "Adopt, build, and share pixel companions for your AI coding agents.", active = "" } = Astro.props;
 const nav = [
@@ -270,5 +271,6 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
       })();
     })();
   </script>
+  <SurprisePet />
 </body>
 </html>
