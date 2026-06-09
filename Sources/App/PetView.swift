@@ -676,6 +676,7 @@ private struct AgentRow: View {
     var count: Int = 1
     var chatStyle: Bool = false
     @ObservedObject private var settings = BubbleSettings.shared
+    @ObservedObject private var bubbleMsgs = BubbleMessages.shared
 
     private var primaryPt: CGFloat { settings.fontSize.primaryPt }
     private var secondaryPt: CGFloat { settings.fontSize.secondaryPt }
@@ -789,10 +790,26 @@ private struct AgentRow: View {
     }
 
     private var messageText: String {
+        // A custom bubble message (per agent) OVERRIDES the live/theme text so
+        // the real pet honours the user's setting. Working is blank by default,
+        // so it falls through to live activity unless the user fills it in.
+        if bubbleMsgs.source == .custom {
+            let custom = bubbleMsgs.line(for: session.agentKind, mood: moodFor(session.state), seed: session.id)
+            if !custom.isEmpty { return custom }
+        }
         let m = session.message?.trimmingCharacters(in: .whitespaces) ?? ""
         if !m.isEmpty { return m }
         return ClaudeActivityFormatter.stateMessage(for: session.state)
             ?? session.state.rawValue.capitalized
+    }
+
+    private func moodFor(_ state: AgentState) -> PetMood {
+        switch state {
+        case .working, .registered: return .working
+        case .waiting:              return .waiting
+        case .done:                 return .done
+        case .idle:                 return .idle
+        }
     }
 
     private var dotSpins: Bool {
@@ -823,7 +840,8 @@ private struct AgentRow: View {
 // MARK: - Simple Chat Bubble (celebrate / done / waiting fallback)
 
 /// A plain speech bubble with a downward tail, used for celebrate/done lines.
-private struct ChatBubble: View {
+/// Theme-aware (light/dark/system); reused by the Settings live preview.
+struct ChatBubble: View {
     let text: String
     @ObservedObject private var settings = BubbleSettings.shared
 
@@ -854,7 +872,7 @@ private struct ChatBubble: View {
     var body: some View {
         VStack(spacing: 0) {
             Text(text)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: settings.fontSize.primaryPt, weight: .medium))
                 .foregroundStyle(textColor)
                 .lineLimit(1)
                 .truncationMode(.tail)

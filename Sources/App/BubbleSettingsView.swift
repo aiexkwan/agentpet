@@ -8,18 +8,22 @@ struct BubbleSettingsView: View {
     @ObservedObject private var settings = BubbleSettings.shared
     @ObservedObject private var pet = PetController.shared
     @ObservedObject private var chat = ChatSettings.shared
+    @ObservedObject private var bubbleMsgs = BubbleMessages.shared
+    @State private var editingAgentKey = BubbleMessages.allKey
     @State private var dragging: BubbleToken?
     @State private var iconPickerKind: AgentKind?
 
     var body: some View {
         Form {
             modeSection
+            appearanceSection
             if settings.multiAgentBubbleEnabled {
                 agentsSection
                 rowLayoutSection
                 iconsSection
                 styleSection
                 activitySection
+                bubbleMessagesSection
             } else {
                 defaultBubbleSection
             }
@@ -45,6 +49,61 @@ struct BubbleSettingsView: View {
             }
         } header: {
             Text("Bubble mode")
+        }
+    }
+
+    /// Global look of the bubble (both simple and multi-agent): theme, opacity,
+    /// font size. Always shown, independent of the multi-agent toggle.
+    private var appearanceSection: some View {
+        Section {
+            HStack {
+                Text("Theme")
+                Spacer()
+                Picker("Theme", selection: $settings.theme) {
+                    ForEach(BubbleSettings.Theme.allCases, id: \.self) {
+                        Text($0.displayName).tag($0)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+                .labelsHidden()
+            }
+
+            HStack {
+                Text("Font size")
+                Spacer()
+                Picker("Font size", selection: $settings.fontSize) {
+                    Text("S").tag(BubbleSettings.FontSize.small)
+                    Text("M").tag(BubbleSettings.FontSize.medium)
+                    Text("L").tag(BubbleSettings.FontSize.large)
+                }
+                .pickerStyle(.segmented)
+                .fixedSize()
+                .labelsHidden()
+            }
+
+            HStack {
+                Text("Opacity")
+                Slider(value: $settings.opacity, in: 0.6...1.0)
+                Text("\(Int(settings.opacity * 100))%")
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize()
+                    .foregroundStyle(.secondary)
+                    .frame(width: 48, alignment: .trailing)
+            }
+
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Show idle message")
+                    Text("The pet's chatter while no agent is running.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                ColorSwitch(isOn: $pet.showIdleMessage)
+            }
+        } header: {
+            Text("Appearance")
         }
     }
 
@@ -86,6 +145,54 @@ struct BubbleSettingsView: View {
             Text("Simple bubble")
         } footer: {
             Text("Turn on multi-agent bubble above for per-agent rows with icons and activity.")
+        }
+    }
+
+    /// Custom messages for the multi-agent bubble, editable per agent kind (or
+    /// "All agents"). A custom line OVERRIDES the live/theme text in the row;
+    /// leaving Working empty keeps live activity. Done/celebrate is the line
+    /// shown when every agent finishes. Independent of the simple bubble.
+    private var bubbleMessagesSection: some View {
+        Section {
+            Picker("Messages", selection: $bubbleMsgs.source) {
+                Text("System").tag(BubbleMessages.Source.system)
+                Text("Custom").tag(BubbleMessages.Source.custom)
+            }
+            .pickerStyle(.segmented)
+            if bubbleMsgs.source == .custom {
+                Picker("Agent", selection: $editingAgentKey) {
+                    Text("All agents").tag(BubbleMessages.allKey)
+                    ForEach(BubbleMessages.editableAgents, id: \.self) { kind in
+                        Text(TickerFormatter.agentLabel(for: kind)).tag(kind.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                ForEach(BubbleMessages.editableMoods, id: \.self) { mood in
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(moodLabel(mood) + (mood == .working ? " (blank = live activity)" : ""))
+                            .font(.caption).foregroundStyle(.secondary)
+                        GrowingTextEditor(text: Binding(
+                            get: { bubbleMsgs.text(for: editingAgentKey, mood: mood) },
+                            set: { bubbleMsgs.setText($0, for: editingAgentKey, mood: mood) }
+                        ))
+                        .padding(4)
+                        .background(RoundedRectangle(cornerRadius: 6).fill(Color(white: 0.16)))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.white.opacity(0.12)))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                HStack {
+                    Text("One message per line; a random one is shown.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button("Reset to defaults") { bubbleMsgs.resetToDefaults(for: editingAgentKey) }
+                        .controlSize(.small)
+                }
+            }
+        } header: {
+            Text("Bubble messages")
+        } footer: {
+            Text("Per-agent overrides win over \"All agents\". A custom line replaces the live/theme text and the real pet honours it.")
         }
     }
 
@@ -316,41 +423,6 @@ struct BubbleSettingsView: View {
                     Text("→").tag("→")
                     Text("|").tag("|")
                     Text("space").tag(" ")
-                }
-                .pickerStyle(.segmented)
-                .fixedSize()
-                .labelsHidden()
-            }
-
-            HStack {
-                Text("Font size")
-                Spacer()
-                Picker("Font size", selection: $settings.fontSize) {
-                    Text("S").tag(BubbleSettings.FontSize.small)
-                    Text("M").tag(BubbleSettings.FontSize.medium)
-                    Text("L").tag(BubbleSettings.FontSize.large)
-                }
-                .pickerStyle(.segmented)
-                .fixedSize()
-                .labelsHidden()
-            }
-
-            HStack {
-                Text("Opacity")
-                Slider(value: $settings.opacity, in: 0.6...1.0)
-                Text("\(Int(settings.opacity * 100))%")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .frame(width: 36)
-            }
-
-            HStack {
-                Text("Theme")
-                Spacer()
-                Picker("Theme", selection: $settings.theme) {
-                    ForEach(BubbleSettings.Theme.allCases, id: \.self) {
-                        Text($0.displayName).tag($0)
-                    }
                 }
                 .pickerStyle(.segmented)
                 .fixedSize()

@@ -2,7 +2,8 @@ import Foundation
 import AgentPetCore
 
 /// User choice of chat messages: the built-in system set, or custom lines the
-/// user types per mood.
+/// user types per mood. Drives the simple (single-line) chat bubble. The
+/// multi-agent bubble uses `BubbleMessages` instead.
 @MainActor
 final class ChatSettings: ObservableObject {
     static let shared = ChatSettings()
@@ -20,8 +21,13 @@ final class ChatSettings: ObservableObject {
     private static let sourceKey = "agentpet.chatSource"
     private static let customKey = "agentpet.chatCustom"
 
-    /// Moods the user can write messages for (idle has no bubble).
-    static let editableMoods: [PetMood] = [.working, .waiting, .done, .celebrate]
+    /// Moods the user can write messages for (idle = the "doing nothing" line).
+    static let editableMoods: [PetMood] = [.working, .waiting, .done, .celebrate, .idle]
+
+    /// Built-in defaults per mood; idle borrows the IdleBoost one-liners.
+    private func defaults(_ mood: PetMood) -> [String] {
+        mood == .idle ? IdleBoost.lines : (PetChat.lines[mood] ?? [])
+    }
 
     init() {
         source = (UserDefaults.standard.string(forKey: Self.sourceKey)).flatMap(Source.init(rawValue:)) ?? .system
@@ -38,16 +44,16 @@ final class ChatSettings: ObservableObject {
     func lines(for mood: PetMood) -> [String] {
         switch source {
         case .system:
-            return PetChat.lines[mood] ?? []
+            return defaults(mood)
         case .custom:
             let lines = (custom[mood.rawValue] ?? []).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-            return lines.isEmpty ? (PetChat.lines[mood] ?? []) : lines
+            return lines.isEmpty ? defaults(mood) : lines
         }
     }
 
     /// One message per line, for binding to a multiline text field.
     func text(for mood: PetMood) -> String {
-        (custom[mood.rawValue] ?? PetChat.lines[mood] ?? []).joined(separator: "\n")
+        (custom[mood.rawValue] ?? defaults(mood)).joined(separator: "\n")
     }
 
     func setText(_ text: String, for mood: PetMood) {
@@ -60,7 +66,7 @@ final class ChatSettings: ObservableObject {
     func resetToDefaults() {
         var updated = custom
         for mood in Self.editableMoods {
-            updated[mood.rawValue] = PetChat.lines[mood] ?? []
+            updated[mood.rawValue] = defaults(mood)
         }
         custom = updated
     }

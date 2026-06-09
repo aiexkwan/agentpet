@@ -19,6 +19,13 @@ final class PetController: ObservableObject {
             refreshChat()
         }
     }
+    /// Whether the pet shows a chat line while idle (the "doing nothing" chatter).
+    @Published var showIdleMessage: Bool {
+        didSet {
+            UserDefaults.standard.set(showIdleMessage, forKey: Self.idleMsgKey)
+            refreshChat()
+        }
+    }
     /// Sprite point size, freely adjustable via a slider.
     @Published var petPoint: Double {
         didSet { UserDefaults.standard.set(petPoint, forKey: Self.sizeKey) }
@@ -51,12 +58,14 @@ final class PetController: ObservableObject {
 
     private static let petKey = "agentpet.selectedPetID"
     private static let chatKey = "agentpet.showChat"
+    private static let idleMsgKey = "agentpet.showIdleMessage"
     private static let sizeKey = "agentpet.petSize"
     private static let celebrateDuration: TimeInterval = 3
 
     init() {
         selectedPetID = UserDefaults.standard.string(forKey: Self.petKey)
         showChat = (UserDefaults.standard.object(forKey: Self.chatKey) as? Bool) ?? true
+        showIdleMessage = (UserDefaults.standard.object(forKey: Self.idleMsgKey) as? Bool) ?? true
         let saved = UserDefaults.standard.object(forKey: Self.sizeKey) as? Double ?? 120
         petPoint = min(max(saved, Self.minPoint), Self.maxPoint)
     }
@@ -147,18 +156,32 @@ final class PetController: ObservableObject {
     }
 
     private func setMood(_ newMood: PetMood) {
+        let changed = newMood != mood
         mood = newMood
-        refreshChat()
+        // Only re-pick the line when the mood actually changes, so a periodic
+        // refresh (e.g. the 10s prune) doesn't keep swapping the idle line and
+        // resize/jump the pet. `reroll` forces a new pick on real transitions.
+        refreshChat(reroll: changed)
     }
 
-    private func refreshChat() {
+    private func refreshChat(reroll: Bool = true) {
         guard showChat else {
             chatLine = ""
             StatusBarController.shared.refreshTitle()
             return
         }
         if mood == .idle {
-            chatLine = IdleBoost.line()
+            guard showIdleMessage else {
+                chatLine = ""
+                StatusBarController.shared.refreshTitle()
+                return
+            }
+            if reroll || chatLine.isEmpty {
+                let pool = BubbleSettings.shared.multiAgentBubbleEnabled
+                    ? BubbleMessages.shared.lines(for: nil, mood: .idle)
+                    : ChatSettings.shared.lines(for: .idle)
+                chatLine = pool.randomElement() ?? IdleBoost.line()
+            }
             StatusBarController.shared.refreshTitle()
             return
         }
@@ -169,13 +192,12 @@ final class PetController: ObservableObject {
             StatusBarController.shared.refreshTitle()
             return
         }
-        let pool = ChatSettings.shared.lines(for: mood)
-        guard !pool.isEmpty else {
-            chatLine = ""
-            StatusBarController.shared.refreshTitle()
-            return
+        if reroll || chatLine.isEmpty {
+            let pool = BubbleSettings.shared.multiAgentBubbleEnabled
+                ? BubbleMessages.shared.lines(for: nil, mood: mood)
+                : ChatSettings.shared.lines(for: mood)
+            chatLine = pool.randomElement() ?? ""
         }
-        chatLine = pool.randomElement() ?? ""
         StatusBarController.shared.refreshTitle()
     }
 
