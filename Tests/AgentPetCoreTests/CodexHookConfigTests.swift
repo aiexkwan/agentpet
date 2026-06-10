@@ -12,8 +12,13 @@ final class CodexHookConfigTests: XCTestCase {
         XCTAssertNil(CodexHookConfig.enableHooks(in: "[features]\nhooks = true\n"))
     }
 
-    func testAlreadyEnabledCodexHooksAliasIsNoOp() {
-        XCTAssertNil(CodexHookConfig.enableHooks(in: "[features]\ncodex_hooks = true\n"))
+    func testCodexHooksAliasAloneStillAddsModernKey() {
+        // `codex_hooks` is a deprecated alias recent Codex (Desktop 5.x) ignores,
+        // so a config with only that must still get a real `hooks = true`.
+        let out = CodexHookConfig.enableHooks(in: "[features]\ncodex_hooks = true\n")
+        XCTAssertNotNil(out)
+        XCTAssertTrue(out!.contains("hooks = true"))
+        XCTAssertTrue(CodexHookConfig.alreadyEnabled(out!))
     }
 
     func testFlipsHooksFalseToTrue() {

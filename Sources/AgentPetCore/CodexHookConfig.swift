@@ -19,7 +19,10 @@ public enum CodexHookConfig {
             let line = raw.trimmingCharacters(in: .whitespaces)
             if line.hasPrefix("#") { continue }
             let compact = line.replacingOccurrences(of: " ", with: "")
-            if compact.hasPrefix("hooks=true") || compact.hasPrefix("codex_hooks=true") { return true }
+            // Only the modern `hooks = true` counts. `codex_hooks` is a deprecated
+            // alias that recent Codex (Desktop 5.x) ignores, so a config that only
+            // has `codex_hooks = true` must still get a real `hooks = true` added.
+            if compact.hasPrefix("hooks=true") { return true }
         }
         return false
     }
@@ -31,11 +34,11 @@ public enum CodexHookConfig {
 
         var lines = toml.components(separatedBy: "\n")
 
-        // If a hooks / codex_hooks key already exists (e.g. set to false), flip
-        // that line to true rather than adding a duplicate key.
+        // If a modern `hooks =` key already exists (e.g. set to false), flip it to
+        // true rather than adding a duplicate. A `codex_hooks =` line is left as-is
+        // (deprecated) and we add a real `hooks = true` below.
         for i in lines.indices {
             let compact = lines[i].trimmingCharacters(in: .whitespaces).replacingOccurrences(of: " ", with: "")
-            if compact.hasPrefix("codex_hooks=") { lines[i] = "codex_hooks = true"; return lines.joined(separator: "\n") }
             if compact.hasPrefix("hooks=") { lines[i] = "hooks = true"; return lines.joined(separator: "\n") }
         }
 
