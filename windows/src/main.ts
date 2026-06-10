@@ -22,6 +22,12 @@ const STATE_LABEL: Record<string, string> = {
 };
 
 // --- bubble customization (theme / opacity / custom messages) ----------------
+const FONT_FAMILIES: Record<string, string> = {
+  system: '"Segoe UI", system-ui, sans-serif',
+  rounded: '"Segoe UI Rounded", "Nunito", "Segoe UI", sans-serif',
+  mono: 'Consolas, "Courier New", monospace',
+};
+
 function applyBubble() {
   const theme = localStorage.getItem("ap_theme") || "dark";
   const op = (parseInt(localStorage.getItem("ap_opacity") || "92", 10) || 92) / 100;
@@ -35,18 +41,25 @@ function applyBubble() {
     r.setProperty("--bubble-fg", "#ffffff");
     r.setProperty("--bubble-border", "rgba(255,255,255,0.10)");
   }
+  r.setProperty("--bubble-font-size", `${parseInt(localStorage.getItem("ap_font_size") || "12", 10) || 12}px`);
+  r.setProperty("--bubble-font-family", FONT_FAMILIES[localStorage.getItem("ap_font_family") || "system"] ?? FONT_FAMILIES.system);
 }
 applyBubble();
 
-// A stable custom line for a state (seeded by session id), or null for default.
-function customLine(state: string, seed: string): string | null {
-  const raw = localStorage.getItem("ap_msg_" + state);
-  if (!raw) return null;
-  const lines = raw.split("\n").map((s) => s.trim()).filter(Boolean);
-  if (!lines.length) return null;
-  let h = 5381;
-  for (const c of seed) h = (Math.imul(h, 33) + c.charCodeAt(0)) | 0;
-  return lines[Math.abs(h) % lines.length];
+// A stable custom line for a state (seeded by session id). Per-agent overrides
+// the "all" set; returns null when nothing custom is set (use the default).
+function customLine(state: string, seed: string, agent?: string): string | null {
+  const keys = agent ? [`ap_msg_${agent}_${state}`, `ap_msg_all_${state}`] : [`ap_msg_all_${state}`];
+  for (const k of keys) {
+    const raw = localStorage.getItem(k);
+    if (!raw) continue;
+    const lines = raw.split("\n").map((s) => s.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    let h = 5381;
+    for (const c of seed) h = (Math.imul(h, 33) + c.charCodeAt(0)) | 0;
+    return lines[Math.abs(h) % lines.length];
+  }
+  return null;
 }
 
 // --- pick + load a pet sprite -------------------------------------------------
@@ -61,17 +74,19 @@ function customLine(state: string, seed: string): string | null {
 
 // --- render loop for state + bubble ------------------------------------------
 function render() {
-  const top = store.active()[0];
-  const state = top?.state ?? "idle";
-  pet.setState(state);
+  const active = store.active().filter((s) => s.state !== "idle");
+  pet.setState(active[0]?.state ?? "idle");
 
-  if (top && state !== "idle") {
-    const label = t(STATE_LABEL[state] ?? "");
-    const msg = customLine(state, top.session) || top.message || label;
-    const proj = top.project ? top.project.split(/[\\/]/).pop() : "";
-    bubble.innerHTML =
-      `<span class="agent">${esc(top.agent)}</span>${proj ? " · " + esc(proj) : ""} ` +
-      `${esc(msg)}<span class="state">${esc(label)}</span>`;
+  if (active.length) {
+    // Show every active agent (multi-agent), one row each, capped.
+    bubble.innerHTML = active.slice(0, 4).map((s) => {
+      const label = t(STATE_LABEL[s.state] ?? "");
+      const msg = customLine(s.state, s.session, s.agent) || s.message || label;
+      const proj = s.project ? s.project.split(/[\\/]/).pop() : "";
+      return `<div class="brow" data-state="${esc(s.state)}"><span class="dot"></span>` +
+        `<span class="agent">${esc(s.agent)}</span>${proj ? " · " + esc(proj) : ""} ` +
+        `${esc(msg)}<span class="state">${esc(label)}</span></div>`;
+    }).join("");
     bubble.hidden = false;
   } else {
     bubble.hidden = true;
