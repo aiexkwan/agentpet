@@ -98,6 +98,38 @@ async function initPet() {
   });
 }
 
+// ---------------------------------------------------------------- bubble ----
+const MSG_STATES: [string, string][] = [
+  ["working", "Working"], ["waiting", "Needs you"], ["done", "Done"], ["idle", "Idle"],
+];
+
+function initBubble() {
+  const theme = document.getElementById("theme") as HTMLSelectElement;
+  const opacity = document.getElementById("opacity") as HTMLInputElement;
+  theme.value = localStorage.getItem("ap_theme") || "dark";
+  opacity.value = localStorage.getItem("ap_opacity") || "92";
+  const changed = () => { emit("bubble-changed", null); };
+  theme.addEventListener("change", () => { localStorage.setItem("ap_theme", theme.value); changed(); });
+  opacity.addEventListener("input", () => { localStorage.setItem("ap_opacity", opacity.value); changed(); });
+
+  const editors = document.getElementById("msg-editors")!;
+  editors.innerHTML = "";
+  for (const [st, label] of MSG_STATES) {
+    const wrap = document.createElement("div");
+    wrap.className = "msg-editor";
+    const lbl = document.createElement("div");
+    lbl.className = "msg-label";
+    lbl.dataset.label = label; // re-translated by applyStatic
+    lbl.textContent = t(label);
+    const ta = document.createElement("textarea");
+    ta.value = localStorage.getItem("ap_msg_" + st) || "";
+    ta.addEventListener("input", () => { localStorage.setItem("ap_msg_" + st, ta.value); changed(); });
+    wrap.appendChild(lbl);
+    wrap.appendChild(ta);
+    editors.appendChild(wrap);
+  }
+}
+
 // --------------------------------------------------------- notifications ----
 function initNotify() {
   const box = document.getElementById("notify") as HTMLInputElement;
@@ -120,6 +152,15 @@ function applyStatic() {
   const set = (id: string, key: string) => { const el = document.getElementById(id); if (el) el.textContent = t(key); };
   set("t-pet", "Your pet");
   set("t-pet-sub", "Pick the companion that floats on your desktop.");
+  set("t-bubble", "Bubble");
+  set("t-theme", "Theme");
+  set("t-opacity", "Opacity");
+  set("t-msg-help", "Custom messages (one per line, leave empty for default)");
+  set("o-dark", "Dark");
+  set("o-light", "Light");
+  document.querySelectorAll<HTMLElement>(".msg-label").forEach((el) => {
+    if (el.dataset.label) el.textContent = t(el.dataset.label);
+  });
   set("t-agents", "Agent integrations");
   set("t-agents-sub", "Install a hook so AgentPet can see when an agent works, finishes, or needs you.");
   set("t-notif", "Notifications");
@@ -152,5 +193,6 @@ function esc(s: string): string {
 initLang();
 loadAgents();
 initPet();
+initBubble();
 initNotify();
 initAutostart();

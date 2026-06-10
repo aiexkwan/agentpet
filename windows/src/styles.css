@@ -32,8 +32,9 @@ html, body.overlay {
   max-width: 220px;
   padding: 6px 11px;
   border-radius: 13px;
-  background: rgba(22, 24, 38, 0.92);
-  color: #fff;
+  background: var(--bubble-bg, rgba(22, 24, 38, 0.92));
+  color: var(--bubble-fg, #fff);
+  border: 1px solid var(--bubble-border, transparent);
   font-size: 12px;
   line-height: 1.35;
   white-space: nowrap;
@@ -96,3 +97,18 @@ body.settings {
 
 .toggle-row { display: flex; align-items: center; gap: 9px; font-size: 13px; cursor: pointer; padding: 6px 0; }
 .toggle-row input { width: 15px; height: 15px; cursor: pointer; }
+
+.bubble-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 13px; }
+.bubble-row select, .bubble-row input[type="range"] {
+  background: rgba(255,255,255,0.08); color: #e9ecff;
+  border: 1px solid rgba(255,255,255,0.14); border-radius: 7px; padding: 4px 7px; cursor: pointer;
+}
+.bubble-row input[type="range"] { flex: 1; max-width: 200px; }
+.msg-editor { margin-top: 8px; }
+.msg-label { font-size: 12px; opacity: 0.7; margin-bottom: 3px; }
+.msg-editor textarea {
+  width: 100%; min-height: 46px; resize: vertical;
+  background: rgba(255,255,255,0.06); color: #e9ecff;
+  border: 1px solid rgba(255,255,255,0.12); border-radius: 7px; padding: 6px 9px;
+  font-size: 12px; font-family: inherit;
+}
