@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from "astro";
 
 // Maintenance mode. Set to false (and remove `output: 'server'` in
 // astro.config.mjs) to bring the full site back, then redeploy.
-const MAINTENANCE = true;
+const MAINTENANCE = false;
 
 // Self-contained "coming soon" page. No external/community pet artwork, only
 // the original AgentPet brand mark + CSS clouds, so there are no IP concerns.
