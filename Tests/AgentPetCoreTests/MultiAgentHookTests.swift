@@ -133,6 +133,24 @@ final class MultiAgentHookTests: XCTestCase {
         XCTAssertEqual(ev?.agentKind, .cursor)
     }
 
+    func testCursorPayloadDecodesModel() {
+        let json = #"{"conversation_id":"c1","hook_event_name":"stop","model":{"display_name":"Sonnet 4.6"}}"#
+        let e = HookPayload.event(forAgent: .cursor, stdin: Data(json.utf8), now: Date())
+        XCTAssertEqual(e?.model, "Sonnet 4.6")
+    }
+
+    func testCursorPayloadModelAbsentIsNil() {
+        let json = #"{"conversation_id":"c1","hook_event_name":"stop"}"#
+        let e = HookPayload.event(forAgent: .cursor, stdin: Data(json.utf8), now: Date())
+        XCTAssertNil(e?.model)
+    }
+
+    func testWindsurfPayloadDecodesModel() {
+        let json = #"{"trajectory_id":"t1","agent_action_name":"post_cascade_response","model":{"display_name":"GPT-5.1"}}"#
+        let e = HookPayload.event(forAgent: .windsurf, stdin: Data(json.utf8), now: Date())
+        XCTAssertEqual(e?.model, "GPT-5.1")
+    }
+
     func testCursorPreToolUseReadFileActivityMessage() {
         let json = #"{"conversation_id":"c10","hook_event_name":"preToolUse","tool_name":"read_file","tool_input":{"file_path":"README.md"},"workspace_roots":["/proj"]}"#
         let ev = HookPayload.event(forAgent: .cursor, stdin: Data(json.utf8), now: Date())

@@ -18,6 +18,11 @@ final class AntigravityHookPayloadTests: XCTestCase {
         XCTAssertEqual(StateMapper.state(for: .antigravity, eventName: e!.eventName), .working)
     }
 
+    func testDecodesModel() {
+        let e = event(#"{"conversationId":"c1","workspacePaths":["/p"],"stepIdx":0,"toolCall":{"name":"run_command"},"model":{"display_name":"Gemini 3 Pro"}}"#)
+        XCTAssertEqual(e?.model, "Gemini 3 Pro")
+    }
+
     func testStopWithTerminationReasonIsDone() {
         let e = event(#"{"conversationId":"c2","executionNum":1,"terminationReason":"model_stop","fullyIdle":true}"#)
         XCTAssertEqual(e?.eventName, "done")
