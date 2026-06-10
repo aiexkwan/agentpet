@@ -3,6 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Pet } from "./pet";
 import { SessionStore } from "./state";
 import { loadCatalog, savedSlug, saveSlug } from "./catalog";
+import { t, setLang, type Lang } from "./i18n";
 
 const canvas = document.getElementById("pet") as HTMLCanvasElement;
 const bubble = document.getElementById("bubble") as HTMLDivElement;
@@ -36,11 +37,12 @@ function render() {
   pet.setState(state);
 
   if (top && state !== "idle") {
-    const msg = top.message || STATE_LABEL[state] || "";
+    const label = t(STATE_LABEL[state] ?? "");
+    const msg = top.message || label;
     const proj = top.project ? top.project.split(/[\\/]/).pop() : "";
     bubble.innerHTML =
       `<span class="agent">${esc(top.agent)}</span>${proj ? " · " + esc(proj) : ""} ` +
-      `${esc(msg)}<span class="state">${STATE_LABEL[state] ?? ""}</span>`;
+      `${esc(msg)}<span class="state">${esc(label)}</span>`;
     bubble.hidden = false;
   } else {
     bubble.hidden = true;
@@ -60,6 +62,8 @@ listen<{ slug: string; url: string }>("set-pet", (e) => {
   pet.load(e.payload.url);
   saveSlug(e.payload.slug);
 });
+// Language changed from Settings , re-render the bubble in the new language.
+listen<Lang>("lang-changed", (e) => { setLang(e.payload); render(); });
 
 // --- interactions ------------------------------------------------------------
 // Drag the pet to reposition it. Settings/Quit live in the tray menu (the
@@ -71,7 +75,7 @@ canvas.addEventListener("mousedown", async (e) => {
 // Occasional idle chatter.
 setInterval(() => {
   if (store.topState() === "idle") {
-    bubble.textContent = IDLE_LINES[Math.floor(Date.now() / 1000) % IDLE_LINES.length];
+    bubble.textContent = t(IDLE_LINES[Math.floor(Date.now() / 1000) % IDLE_LINES.length]);
     bubble.hidden = false;
     setTimeout(() => { if (store.topState() === "idle") bubble.hidden = true; }, 4000);
   }
