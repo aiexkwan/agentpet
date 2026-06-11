@@ -6,6 +6,7 @@ export interface Pet {
   slug: string;
   name: string;
   spritesheetUrl: string;
+  petJsonUrl?: string;
   kind: string;
 }
 
@@ -17,6 +18,7 @@ export async function loadCatalog(): Promise<Pet[]> {
       slug: p.slug,
       name: p.displayName ?? p.slug,
       spritesheetUrl: p.spritesheetUrl,
+      petJsonUrl: p.petJsonUrl,
       kind: p.kind ?? "creature",
     }));
   } catch {

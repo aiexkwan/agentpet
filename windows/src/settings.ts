@@ -186,41 +186,53 @@ function showCurrent() {
   const hero = document.getElementById("hero-thumb") as HTMLCanvasElement;
   const url = localStorage.getItem("ap_pet_custom") || currentPet?.spritesheetUrl;
   if (url) drawThumb(hero, url);
+  loadHeroDescription();
 }
 
-// Browsable grid: shows the whole catalog a page at a time. Thumbnails only
-// load when scrolled into view (the catalog is ~4000 spritesheets).
-const PAGE = 48;
-const more = document.getElementById("pet-more") as HTMLButtonElement;
-let view: Pet[] = [];
-let shown = 0;
-
-const thumbObserver = new IntersectionObserver((entries) => {
-  for (const e of entries) {
-    if (!e.isIntersecting) continue;
-    const cv = e.target as HTMLCanvasElement;
-    thumbObserver.unobserve(cv);
-    drawThumb(cv, cv.dataset.url!);
+// The pet's own description (from its pet.json on the CDN), like the macOS
+// hero card; falls back to the generic caption.
+async function loadHeroDescription() {
+  const el = document.getElementById("hero-desc");
+  if (!el) return;
+  const jsonUrl = !localStorage.getItem("ap_pet_custom") && currentPet?.petJsonUrl;
+  if (!jsonUrl) { el.textContent = t("Pick the companion that floats on your desktop."); return; }
+  try {
+    const j: any = await (await fetch(jsonUrl)).json();
+    const desc = (j.description || j.about || "").toString().trim();
+    el.textContent = desc || t("Pick the companion that floats on your desktop.");
+  } catch {
+    el.textContent = t("Pick the companion that floats on your desktop.");
   }
-}, { root: results, rootMargin: "120px" });
+}
+
+// Pet pager , 8 pets per page (4 × 2) with ‹ › nav, like the macOS PetPager.
+// Dots when few pages (e.g. a narrowed search), a counter otherwise.
+const PER_PAGE = 8;
+let view: Pet[] = [];
+let page = 0;
+
+const pgPrev = document.getElementById("pg-prev") as HTMLButtonElement;
+const pgNext = document.getElementById("pg-next") as HTMLButtonElement;
+const pgInd = document.getElementById("pg-ind") as HTMLElement;
 
 function setView(list: Pet[]) {
   view = list;
-  shown = 0;
-  results.innerHTML = "";
-  appendPage();
+  page = 0;
+  renderPage();
 }
 
-function appendPage() {
-  for (const p of view.slice(shown, shown + PAGE)) {
+function renderPage() {
+  const totalPages = Math.max(1, Math.ceil(view.length / PER_PAGE));
+  if (page >= totalPages) page = totalPages - 1;
+  results.innerHTML = "";
+  for (const p of view.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE)) {
     const item = document.createElement("button");
     item.className = "pet-item";
     item.dataset.slug = p.slug;
     if (p.slug === savedSlug()) item.classList.add("sel");
     const cv = document.createElement("canvas");
-    cv.width = 44; cv.height = 44; cv.className = "pet-thumb";
-    cv.dataset.url = p.spritesheetUrl;
-    thumbObserver.observe(cv);
+    cv.width = 48; cv.height = 48; cv.className = "pet-thumb";
+    drawThumb(cv, p.spritesheetUrl);
     const label = document.createElement("span");
     label.textContent = p.name;
     item.appendChild(cv);
@@ -228,9 +240,22 @@ function appendPage() {
     item.onclick = () => pick(p);
     results.appendChild(item);
   }
-  shown = Math.min(shown + PAGE, view.length);
-  more.style.display = shown < view.length ? "" : "none";
+  pgPrev.disabled = page === 0;
+  pgNext.disabled = page >= totalPages - 1;
+  pgInd.innerHTML = "";
+  if (totalPages <= 8) {
+    for (let i = 0; i < totalPages; i++) {
+      const d = document.createElement("span");
+      d.className = "pg-dot" + (i === page ? " sel" : "");
+      d.onclick = () => { page = i; renderPage(); };
+      pgInd.appendChild(d);
+    }
+  } else {
+    pgInd.textContent = `${page + 1} / ${totalPages}`;
+  }
 }
+pgPrev.onclick = () => { if (page > 0) { page--; renderPage(); } };
+pgNext.onclick = () => { page++; renderPage(); };
 
 // Draws frame 0 (first column of the Idle row) of an 8x9 spritesheet as a preview.
 function drawThumb(cv: HTMLCanvasElement, url: string) {
@@ -267,7 +292,6 @@ async function initPet() {
   random.addEventListener("click", () => {
     if (catalog.length) pick(catalog[Math.floor(Math.random() * catalog.length)]);
   });
-  more.addEventListener("click", appendPage);
 }
 
 // ---------------------------------------------------------------- bubble ----
@@ -467,7 +491,7 @@ function initPetControls() {
   });
 
   const fx = document.getElementById("fx") as HTMLInputElement;
-  fx.checked = localStorage.getItem("ap_fx") !== "0";
+  fx.checked = localStorage.getItem("ap_fx") === "1"; // mac default: pet stands still
   fx.onchange = () => { localStorage.setItem("ap_fx", fx.checked ? "1" : "0"); changed(); };
 
   // Import a local spritesheet (stored as a data URL , no extra plugins).
@@ -653,7 +677,6 @@ function applyStatic() {
   // pet
   set("t-pet-sub", "Pick the companion that floats on your desktop.");
   set("t-choose", "Choose pet");
-  set("pet-more", "Show more");
   set("import-pet", "Use my own spritesheet…");
   set("t-size", "Size on screen");
   set("t-anims", "Animations");

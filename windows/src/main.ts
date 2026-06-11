@@ -60,7 +60,7 @@ function applyPet() {
   const size = (parseInt(localStorage.getItem("ap_pet_size") || "100", 10) || 100) / 100;
   canvas.style.width = `${Math.round(160 * size)}px`;
   canvas.style.height = `${Math.round(180 * size)}px`;
-  canvas.classList.toggle("bob", localStorage.getItem("ap_fx") !== "0");
+  canvas.classList.toggle("bob", localStorage.getItem("ap_fx") === "1");
 }
 applyPet();
 

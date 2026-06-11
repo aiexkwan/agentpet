@@ -102,6 +102,11 @@ export class Pet {
     requestAnimationFrame((t) => this.loop(t));
   }
 
+  /// Widest frame of each clip , scale is computed per CLIP (not per frame)
+  /// so the pet doesn't pulse and the bubble doesn't bounce as frames of
+  /// slightly different widths cycle.
+  private clipMaxW: number[] = [];
+
   load(spritesheetUrl: string) {
     this.loaded = false;
     const img = new Image();
@@ -109,6 +114,7 @@ export class Pet {
     img.onload = () => {
       this.img = img;
       this.clips = slice(img);
+      this.clipMaxW = this.clips.map((clip) => Math.max(...clip.map((r) => r.w)));
       this.frame = 0;
       this.loaded = true;
     };
@@ -160,20 +166,25 @@ export class Pet {
     this.ctx.clearRect(0, 0, W, H);
 
     let r: Rect;
+    let scaleW: number; // width used for the scale , per CLIP, not per frame
     const clip = this.currentClip();
     if (clip) {
       r = clip[this.frame % clip.length];
+      scaleW = this.clipMaxW[Math.min(this.row, this.clips.length - 1)] || r.w;
     } else {
       // Fallback: fixed 8x9 grid (pixels unreadable , e.g. no CORS).
       const fw = this.img.naturalWidth / COLS;
       const fh = this.img.naturalHeight / ROWS;
       if (!fw || !fh) return;
       r = { x: (this.frame % COLS) * fw, y: Math.min(this.row, ROWS - 1) * fh, w: fw, h: fh };
+      scaleW = fw;
     }
 
     // Fit into the canvas, anchored bottom-center; snap to an integer scale so
-    // pixel-art stays crisp (no shimmering edges from fractional zoom).
-    const fit = Math.min(W / r.w, H / r.h);
+    // pixel-art stays crisp. The scale comes from the clip's widest frame so
+    // every frame of an animation renders at the SAME size (no pulsing, and a
+    // stable headroom = the bubble above never bounces).
+    const fit = Math.min(W / scaleW, H / r.h);
     const s = fit >= 1 ? Math.floor(fit) : fit;
     const dw = r.w * s, dh = r.h * s;
     this.headroom = (H - dh) / H;

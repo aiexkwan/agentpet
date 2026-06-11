@@ -305,17 +305,21 @@ export class BubbleRenderer {
   }
 
   /// Single plain line (idle / done / celebrate) , the mac ChatBubble.
+  /// Re-entrant: repeated calls with the same text are no-ops (no DOM churn,
+  /// no flicker) , only an actual text change cross-fades.
   renderLine(text: string) {
-    this.clear();
-    this.root.hidden = false;
-    this.root.classList.add("capsule");
     let line = this.root.querySelector<HTMLElement>(".single-line");
     if (!line) {
-      this.root.textContent = "";
+      this.clear(); // leaving rows mode , rebuild as a single capsule line
       line = document.createElement("div");
       line.className = "single-line";
+      line.textContent = text;
       this.root.appendChild(line);
+      this.root.classList.add("capsule");
+      this.root.hidden = false;
+      return;
     }
+    this.root.hidden = false;
     if (line.textContent !== text) {
       // Cross-fade the text swap (mac contentTransition(.opacity)).
       line.classList.add("fade");

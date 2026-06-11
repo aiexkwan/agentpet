@@ -297,9 +297,10 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* ---- agents list ---- */
 .agent-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  display: flex; align-items: center; gap: 8px;
   padding: 9px 14px; border-top: 1px solid var(--hair);
 }
+.agent-row .meta { flex: 1; min-width: 0; }
 .agent-row:first-child { border-top: 0; }
 .agent-row .meta .name { font-size: 13px; }
 .agent-row .meta .note { font-size: 11px; color: var(--sec); max-width: 330px; }
@@ -334,21 +335,32 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 5px 11px; cursor: pointer; font-size: 14px;
 }
 #pet-random:hover { background: rgba(255, 255, 255, 0.2); }
+/* mac PetPager look: 4 × 2 cells per page + ‹ › nav */
 .pet-results {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 7px;
-  margin-top: 10px; max-height: 250px; overflow-y: auto; padding-right: 2px;
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+  margin-top: 10px;
 }
 .pet-item {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: rgba(255, 255, 255, 0.06); color: var(--sec);
-  border: 1px solid transparent; border-radius: 9px;
-  padding: 8px 4px 6px; font-size: 11px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.06); color: var(--sec);
+  border: 1.5px solid transparent; border-radius: 13px;
+  padding: 12px 6px 9px; font-size: 11px; cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .pet-item span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pet-item:hover { background: rgba(10, 132, 255, 0.2); color: #fff; }
-.pet-item.sel { border-color: var(--accent); background: rgba(10, 132, 255, 0.16); color: #fff; }
-.pet-thumb { width: 44px; height: 44px; image-rendering: pixelated; }
+.pet-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.pet-item.sel { border-color: var(--accent); background: rgba(10, 132, 255, 0.13); color: #fff; }
+.pet-thumb { width: 48px; height: 48px; image-rendering: pixelated; }
+.pager-nav { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 9px; }
+.pager-nav button {
+  background: rgba(255,255,255,0.1); border: 0; border-radius: 6px;
+  color: var(--txt); width: 26px; height: 22px; cursor: pointer; font-size: 14px; line-height: 1;
+}
+.pager-nav button:disabled { opacity: 0.3; cursor: default; }
+.pager-nav button:not(:disabled):hover { background: rgba(255,255,255,0.18); }
+.pg-ind { display: flex; gap: 5px; align-items: center; font-size: 11px; color: var(--sec); min-width: 48px; justify-content: center; }
+.pg-dot { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,0.25); cursor: pointer; }
+.pg-dot.sel { background: var(--accent); }
 
 /* ---- custom messages ---- */
 .msg-editor { margin-top: 8px; }
