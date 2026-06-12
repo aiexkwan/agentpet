@@ -203,7 +203,7 @@ struct CareTabView: View {
                 }
                 ForEach(NativeUsageProbe.combined()) { p in
                     let used = 1 - (p.fractionLeft ?? 0)
-                    let color: Color = used > 0.85 ? .red : (used > 0.6 ? .orange : .green)
+                    let color: Color = used > 0.9 ? .red : (used > 0.75 ? .orange : stageColor)
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 6) {
                             Text(verbatim: p.displayName).font(.callout.weight(.medium))
@@ -287,12 +287,9 @@ struct CareTabView: View {
     private var stageColor: Color { Self.stageColors[min(care.stageIndex, Self.stageColors.count - 1)] }
 
     private var xpCaption: String {
-        let xp = care.current.xp
-        // care.level is the display level (internal − 1); the next internal
-        // threshold is xpToReach(internal + 1) = xpToReach(displayLevel + 2).
-        let next = PetCare.xpToReach(level: care.level + 2)
+        let (inLevel, span) = PetCare.xpWithinLevel(forXP: care.current.xp)
         return String(format: NSLocalizedString("%@ / %@ XP to next level", comment: ""),
-                      Self.plain(xp), Self.plain(next))
+                      Self.plain(inLevel), Self.plain(span))
     }
 
     /// Continuous fullness 0…1 from the time since the last feeding (48h → empty).

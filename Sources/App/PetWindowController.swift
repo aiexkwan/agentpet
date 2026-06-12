@@ -101,6 +101,11 @@ final class PetWindowController: ObservableObject {
         // Prefer above the pet; AppKit flips to below only if there's no room.
         // In a flipped content view "above" is the minY edge.
         popover.show(relativeTo: rect, of: view, preferredEdge: view.isFlipped ? .minY : .maxY)
+        // The pet lives in a non-activating panel, so the popover opens without
+        // key focus and the first click would just be "focus me". Activate the
+        // app and make the popover window key so clicks land immediately.
+        NSApp.activate(ignoringOtherApps: true)
+        popover.contentViewController?.view.window?.makeKey()
     }
 
     /// First-time placement: bottom-right of the main screen.

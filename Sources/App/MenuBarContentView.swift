@@ -81,23 +81,18 @@ struct MenuContentView: View {
 
         return VStack(alignment: .leading, spacing: 6) {
             sectionLabel("Companion")
-            HStack(spacing: 10) {
-                Image(systemName: Self.stageIcons[idx])
-                    .font(.system(size: 14))
-                    .foregroundStyle(color)
-                    .frame(width: 22, height: 22)
-                    .background(Circle().fill(color.opacity(0.18)))
-                Text(name).font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+            HStack(spacing: 8) {
+                StageBadge(stageIndex: idx, size: 20)
+                Text(name)
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                    .lineLimit(1).truncationMode(.tail)
                 Text(verbatim: "Lv \(level)")
                     .font(.system(size: 12, weight: .bold)).foregroundStyle(color)
-                Text(NSLocalizedString(care.stageKey, comment: "stage"))
-                    .font(.system(size: 10, weight: .semibold))
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(Capsule().fill(color.opacity(0.2)))
-                    .foregroundStyle(color)
-                Spacer()
+                    .layoutPriority(1)
+                Spacer(minLength: 6)
                 Text(hungerText)
                     .font(.system(size: 11)).foregroundStyle(.white.opacity(0.55))
+                    .lineLimit(1).layoutPriority(1)
             }
             .padding(.horizontal, 14)
             ProgressView(value: care.levelProgress)
@@ -117,7 +112,8 @@ struct MenuContentView: View {
     }
 
     private var xpLine: String {
-        "\(care.current.xp) / \(PetCare.xpToReach(level: care.level + 1)) XP"
+        let (inLevel, span) = PetCare.xpWithinLevel(forXP: care.current.xp)
+        return "\(inLevel) / \(span) XP"
     }
 
     private var todayLine: String {

@@ -86,11 +86,11 @@ struct PetStatsView: View {
     // MARK: - XP
 
     private func xpBlock(_ state: PetCareState) -> some View {
-        let next = PetCare.xpToReach(level: care.level + 2)  // display+2 = internal+1
+        let (inLevel, span) = PetCare.xpWithinLevel(forXP: state.xp)
         return VStack(alignment: .leading, spacing: 4) {
             ProgressView(value: care.levelProgress).tint(stageColor).controlSize(.small)
             HStack {
-                Text(verbatim: "\(Self.plain(state.xp)) / \(Self.plain(next)) XP")
+                Text(verbatim: "\(Self.plain(inLevel)) / \(Self.plain(span)) XP")
                     .font(.system(size: 10)).foregroundStyle(.white.opacity(0.45))
                 Spacer()
                 Text(verbatim: "\(Int((care.levelProgress * 100).rounded()))%")
@@ -176,7 +176,9 @@ struct PetStatsView: View {
                     .foregroundStyle(.white.opacity(0.35))
                 ForEach(providers) { p in
                     let used = 1 - (p.fractionLeft ?? 0)      // bar fills as you spend
-                    let color: Color = used > 0.85 ? .red : (used > 0.6 ? .orange : .green)
+                    // Match the level bar's stage colour; only flip to a warning
+                    // tint when a budget is nearly spent.
+                    let color: Color = used > 0.9 ? .red : (used > 0.75 ? .orange : stageColor)
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
                             Text(verbatim: p.displayName)

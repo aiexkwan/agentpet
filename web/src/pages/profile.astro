@@ -123,6 +123,9 @@ export const prerender = false;
       const [stage, color] = stageFor(lv);
       const pct = Math.round(levelProgress(p.xp) * 100);
       const next = 60 * (lv + 1) * lv;
+      const floor = 60 * lv * (lv - 1);
+      const inLevel = Math.max(0, p.xp - floor);   // XP earned in this level
+      const span = Math.max(1, next - floor);      // XP needed to clear it
       const fed = p.lastFedAt ? new Date(p.lastFedAt).toLocaleDateString() : null;
       const thumb = p.thumb
         ? `<img src="${p.thumb}" alt="" class="pixel-art h-16 w-16 object-contain" />`
@@ -155,7 +158,7 @@ export const prerender = false;
             <div class="h-full rounded-full" style="width:${pct}%;background:${color}"></div>
           </div>
           <div class="mt-1 flex justify-between text-[11px] text-faint">
-            <span>${p.xp.toLocaleString()} / ${next.toLocaleString()} XP</span>
+            <span>${inLevel.toLocaleString()} / ${span.toLocaleString()} XP</span>
             <span>${pct}%</span>
           </div>
           <p class="mt-1 text-[11px] font-medium" style="color:${color}">≈ ${tokenLabel(toNext)} tokens to Lv ${dispLv + 1}</p>

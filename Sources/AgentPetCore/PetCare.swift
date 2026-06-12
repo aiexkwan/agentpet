@@ -95,6 +95,16 @@ public enum PetCare {
         return Double(xp - floor) / Double(ceiling - floor)
     }
 
+    /// XP earned within the current level, and the span to the next one — so a
+    /// bar reads "141 / 720 XP" (matching the percentage) instead of an
+    /// absolute total that looks inconsistent with the progress fill.
+    public static func xpWithinLevel(forXP xp: Int) -> (inLevel: Int, span: Int) {
+        let level = level(forXP: xp)
+        let floor = xpToReach(level: level)
+        let ceiling = xpToReach(level: level + 1)
+        return (max(0, xp - floor), max(1, ceiling - floor))
+    }
+
     /// Evolution stages by level. Returned as a localization key.
     public static func stageName(forLevel level: Int) -> String {
         switch level {
