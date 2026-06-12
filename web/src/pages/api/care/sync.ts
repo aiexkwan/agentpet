@@ -36,13 +36,18 @@ export const POST: APIRoute = async ({ request }) => {
 
   const now = Date.now();
   const int = (x: any) => Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(Number(x) || 0)));
+  const thumbOf = (p: any): string | null => {
+    const t = p?.thumb;
+    if (typeof t !== "string" || t.length > 32_000) return null;
+    return t.startsWith("data:image/png;base64,") ? t : null;
+  };
   const statements = pets
     .filter((p) => typeof p?.id === "string" && p.id.length > 0 && p.id.length <= 120)
     .map((p) =>
       db
         .prepare(
-          `INSERT INTO care_pets (user_id, pet_id, name, xp, tokens, meals, streak, last_fed_at, updated_at)
-           VALUES (?,?,?,?,?,?,?,?,?)
+          `INSERT INTO care_pets (user_id, pet_id, name, xp, tokens, meals, streak, last_fed_at, updated_at, thumb)
+           VALUES (?,?,?,?,?,?,?,?,?,?)
            ON CONFLICT (user_id, pet_id) DO UPDATE SET
              name=excluded.name,
              xp=MAX(care_pets.xp, excluded.xp),
@@ -50,7 +55,8 @@ export const POST: APIRoute = async ({ request }) => {
              meals=MAX(care_pets.meals, excluded.meals),
              streak=excluded.streak,
              last_fed_at=excluded.last_fed_at,
-             updated_at=excluded.updated_at`
+             updated_at=excluded.updated_at,
+             thumb=COALESCE(excluded.thumb, care_pets.thumb)`
         )
         .bind(
           device.user_id,
@@ -61,7 +67,8 @@ export const POST: APIRoute = async ({ request }) => {
           int(p.meals),
           int(p.streak),
           p.lastFedAt ? int(p.lastFedAt) * 1000 : null,
-          now
+          now,
+          thumbOf(p)
         )
     );
   if (statements.length) await db.batch(statements);

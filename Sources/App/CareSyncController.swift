@@ -77,6 +77,30 @@ final class CareSyncController: ObservableObject {
         }
     }
 
+    /// First idle frame as a small PNG data URL, so the web profile can show
+    /// the actual sprite — including local custom pets the site has never seen.
+    private static func thumbDataURL(for petID: String) -> String? {
+        guard let frame = ImagePetStore.shared.pack(id: petID)?.clip(0).first else { return nil }
+        let size = frame.size
+        guard size.width > 0, size.height > 0 else { return nil }
+        let maxSide: CGFloat = 64
+        let scale = min(maxSide / size.width, maxSide / size.height)
+        let target = NSSize(width: max(1, floor(size.width * scale)), height: max(1, floor(size.height * scale)))
+        guard let rep = NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(target.width), pixelsHigh: Int(target.height),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+        ) else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        let ctx = NSGraphicsContext(bitmapImageRep: rep)
+        NSGraphicsContext.current = ctx
+        ctx?.imageInterpolation = .none   // keep the pixel art crisp
+        frame.draw(in: NSRect(origin: .zero, size: target))
+        NSGraphicsContext.restoreGraphicsState()
+        guard let png = rep.representation(using: .png, properties: [:]), png.count < 24_000 else { return nil }
+        return "data:image/png;base64," + png.base64EncodedString()
+    }
+
     func push() async {
         guard let token = UserDefaults.standard.string(forKey: Self.tokenKey) else { return }
         let states = PetCareController.shared.states
@@ -92,6 +116,7 @@ final class CareSyncController: ObservableObject {
                 "meals": s.totalMeals,
                 "streak": s.streakDays,
                 "lastFedAt": s.lastFedAt.map { Int($0.timeIntervalSince1970) } as Any,
+                "thumb": Self.thumbDataURL(for: id) as Any,
             ]
         }
 

@@ -331,3 +331,12 @@
 "%@ tokens · 1 meal" = "%@ token · 1 餐";
 "%@ tokens · %d meals" = "%@ token · %d 餐";
 "%@ tokens · %d sessions" = "%@ token · %d 会话";
+
+/* Care HUD */
+"Burn, last 7 days" = "近 7 天消耗";
+"Limits" = "额度";
+"days fed" = "天有进食";
+"tokens eaten" = "已吃 token";
+"completed" = "已完成";
+"1 meal" = "1 餐";
+"%d meals" = "%d 餐";

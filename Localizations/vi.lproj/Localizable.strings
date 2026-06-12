@@ -331,3 +331,12 @@
 "%@ tokens · 1 meal" = "%@ token · 1 bữa";
 "%@ tokens · %d meals" = "%@ token · %d bữa";
 "%@ tokens · %d sessions" = "%@ token · %d phiên";
+
+/* Care HUD */
+"Burn, last 7 days" = "Token đốt, 7 ngày qua";
+"Limits" = "Hạn mức";
+"days fed" = "ngày được ăn";
+"tokens eaten" = "token đã ăn";
+"completed" = "đã hoàn thành";
+"1 meal" = "1 bữa";
+"%d meals" = "%d bữa";

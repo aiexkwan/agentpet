@@ -331,3 +331,12 @@
 "%@ tokens · 1 meal" = "%@ tokens · 1 meal";
 "%@ tokens · %d meals" = "%@ tokens · %d meals";
 "%@ tokens · %d sessions" = "%@ tokens · %d sessions";
+
+/* Care HUD */
+"Burn, last 7 days" = "Burn, last 7 days";
+"Limits" = "Limits";
+"days fed" = "days fed";
+"tokens eaten" = "tokens eaten";
+"completed" = "completed";
+"1 meal" = "1 meal";
+"%d meals" = "%d meals";

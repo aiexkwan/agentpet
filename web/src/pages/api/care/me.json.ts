@@ -21,7 +21,7 @@ export const GET: APIRoute = async ({ cookies }) => {
   await ensureSchema(db);
 
   const rows: any = await db
-    .prepare("SELECT pet_id, name, xp, tokens, meals, streak, last_fed_at, updated_at FROM care_pets WHERE user_id=? ORDER BY xp DESC")
+    .prepare("SELECT pet_id, name, xp, tokens, meals, streak, last_fed_at, updated_at, thumb FROM care_pets WHERE user_id=? ORDER BY xp DESC")
     .bind(user.id)
     .all();
 
@@ -34,6 +34,7 @@ export const GET: APIRoute = async ({ cookies }) => {
     streak: r.streak,
     lastFedAt: r.last_fed_at,
     updatedAt: r.updated_at,
+    thumb: r.thumb || null,
   }));
 
   return new Response(JSON.stringify({ pets }), {
