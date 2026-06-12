@@ -299,3 +299,25 @@
 "Low fuel: a usage limit is nearly reached!" = "Sắp hết nhiên liệu: một hạn mức sắp chạm trần!";
 "Maybe save some tokens for tomorrow…" = "Hay là để dành ít token cho ngày mai…";
 "1 day" = "1 ngày";
+
+/* Care v2: per-pet + web sync + popover */
+"Your pet" = "Pet của bạn";
+"Every pet levels up on its own: experience belongs to the companion you raise it with." = "Mỗi pet tự lên cấp: kinh nghiệm thuộc về bạn đồng hành mà bạn nuôi cùng.";
+"All companions" = "Tất cả bạn đồng hành";
+"Each companion keeps its own experience. Switch pets in the Pet tab to raise another one." = "Mỗi bạn đồng hành giữ kinh nghiệm riêng. Đổi pet ở tab Thú cưng để nuôi con khác.";
+"Raising" = "Đang nuôi";
+"Web profile" = "Hồ sơ web";
+"Connected to your profile" = "Đã kết nối với hồ sơ của bạn";
+"Last synced %@" = "Đồng bộ lần cuối %@";
+"Your companions appear on your profile page." = "Các bạn đồng hành sẽ hiện trên trang hồ sơ của bạn.";
+"Disconnect" = "Ngắt kết nối";
+"Show your companions on your web profile" = "Hiện các bạn đồng hành trên hồ sơ web của bạn";
+"Sign in on the site, open your profile, and enter the pairing code here." = "Đăng nhập trên trang web, mở hồ sơ, rồi nhập mã ghép nối vào đây.";
+"Pairing code" = "Mã ghép nối";
+"Connecting…" = "Đang kết nối…";
+"Connect" = "Kết nối";
+"Open profile" = "Mở hồ sơ";
+"Code not recognized. Codes expire after 10 minutes." = "Không nhận ra mã. Mã hết hạn sau 10 phút.";
+"Could not reach the server." = "Không kết nối được máy chủ.";
+"Sync failed, will retry." = "Đồng bộ thất bại, sẽ thử lại.";
+"Today %@ tokens · %d meals" = "Hôm nay %@ token · %d bữa";

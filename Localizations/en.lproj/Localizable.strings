@@ -299,3 +299,25 @@
 "Low fuel: a usage limit is nearly reached!" = "Low fuel: a usage limit is nearly reached!";
 "Maybe save some tokens for tomorrow…" = "Maybe save some tokens for tomorrow…";
 "1 day" = "1 day";
+
+/* Care v2: per-pet + web sync + popover */
+"Your pet" = "Your pet";
+"Every pet levels up on its own: experience belongs to the companion you raise it with." = "Every pet levels up on its own: experience belongs to the companion you raise it with.";
+"All companions" = "All companions";
+"Each companion keeps its own experience. Switch pets in the Pet tab to raise another one." = "Each companion keeps its own experience. Switch pets in the Pet tab to raise another one.";
+"Raising" = "Raising";
+"Web profile" = "Web profile";
+"Connected to your profile" = "Connected to your profile";
+"Last synced %@" = "Last synced %@";
+"Your companions appear on your profile page." = "Your companions appear on your profile page.";
+"Disconnect" = "Disconnect";
+"Show your companions on your web profile" = "Show your companions on your web profile";
+"Sign in on the site, open your profile, and enter the pairing code here." = "Sign in on the site, open your profile, and enter the pairing code here.";
+"Pairing code" = "Pairing code";
+"Connecting…" = "Connecting…";
+"Connect" = "Connect";
+"Open profile" = "Open profile";
+"Code not recognized. Codes expire after 10 minutes." = "Code not recognized. Codes expire after 10 minutes.";
+"Could not reach the server." = "Could not reach the server.";
+"Sync failed, will retry." = "Sync failed, will retry.";
+"Today %@ tokens · %d meals" = "Today %@ tokens · %d meals";
