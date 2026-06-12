@@ -113,7 +113,7 @@ const stats = [
   { n: "100%", l: "free & open" },
 ];
 const steps = [
-  { icon: "download", title: "Get the app", body: "Install AgentPet on macOS in one command (Windows & Linux soon). Free forever." },
+  { icon: "download", title: "Get the app", body: "Install AgentPet on macOS or Windows in seconds (Linux soon). Free forever." },
   { icon: "paw", title: "Adopt a pet", body: "Pick from thousands of pixel companions, or make and share your own." },
   { icon: "sparkles", title: "Watch it react", body: "Your pet thinks, works, and celebrates right alongside your AI agents." },
 ];
@@ -153,7 +153,7 @@ const bubblePos = [
         <a href="/gallery" class="btn-ghost !px-6 !py-3.5 text-base"><Icon name="grid" class="h-5 w-5" /> Browse pets</a>
       </div>
       <div class="mt-5 flex items-center justify-center gap-2 text-sm text-[#5a6685]">
-        <Icon name="apple" class="h-4 w-4" /> macOS now · Windows & Linux soon
+        <Icon name="apple" class="h-4 w-4" /><Icon name="windows" class="h-4 w-4" /> macOS & Windows now · Linux soon
       </div>
     </div>
 
@@ -394,9 +394,10 @@ const bubblePos = [
         <div>
           <div class="font-pixel text-[11px] uppercase tracking-wide text-brand-500">Install in seconds</div>
           <h2 class="mt-2 font-display text-3xl font-bold text-ink sm:text-4xl">Up and running with one command</h2>
-          <p class="mt-3 max-w-md text-muted">AgentPet is free, open source, and notarized by Apple. Install it on macOS with Homebrew or a direct download. Windows and Linux are on the way.</p>
+          <p class="mt-3 max-w-md text-muted">AgentPet is free and open source. Install it on macOS with Homebrew or a notarized DMG, or grab the Windows installer. Linux is on the way.</p>
           <div class="mt-6 flex flex-wrap gap-3">
-            <a href="/install" class="btn-primary !px-6 !py-3"><Icon name="apple" class="h-5 w-5" /> Download for macOS</a>
+            <a href="/install" data-os-cta="macos" class="btn-primary !px-6 !py-3"><Icon name="apple" class="h-5 w-5" /> Download for macOS</a>
+            <a href="/install" data-os-cta="windows" class="btn-primary hidden !px-6 !py-3"><Icon name="windows" class="h-5 w-5" /> Download for Windows</a>
             <a href="/install#uninstall" class="btn-ghost !px-6 !py-3"><Icon name="book" class="h-5 w-5" /> Install &amp; uninstall guide</a>
           </div>
         </div>
@@ -433,6 +434,13 @@ const bubblePos = [
 
   <script>
     import { drawComposite } from "../lib/composite";
+
+    // OS-aware download CTA: Windows visitors see the Windows button.
+    if (/Win(dows|32|64)/i.test(navigator.userAgent)) {
+      document.querySelectorAll<HTMLElement>("[data-os-cta]").forEach((el) => {
+        el.classList.toggle("hidden", el.dataset.osCta !== "windows");
+      });
+    }
     document.querySelectorAll<HTMLCanvasElement>(".collection-thumb[data-slugs]").forEach((cv) => drawComposite(cv, (cv.dataset.slugs || "").split(",").filter(Boolean)));
 
     // Slice a spritesheet (alpha gutters) into rows=animations, play one row on a
