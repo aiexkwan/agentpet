@@ -128,6 +128,32 @@ final class PetCareTests: XCTestCase {
         XCTAssertEqual(s.totalMeals, 1)
     }
 
+    func testDailyHistoryTracksFullBurnAndPrunes() {
+        var s = PetCareState()
+        PetCare.feedTokens(PetCare.dailyTokenCap + 500_000, state: &s,
+                           now: date("2026-06-12 10:00"), calendar: calendar)
+        XCTAssertEqual(s.days?["2026-06-12"], PetCare.dailyTokenCap + 500_000,
+                       "history keeps the full burn, beyond the XP cap")
+        // 15 more days of feeding → history pruned to 14 entries.
+        for day in 13...27 {
+            PetCare.feedTokens(1_000, state: &s,
+                               now: date(String(format: "2026-06-%02d 10:00", day)), calendar: calendar)
+        }
+        XCTAssertEqual(s.days?.count, 14)
+        XCTAssertNil(s.days?["2026-06-12"], "oldest day dropped")
+        let recent = PetCare.recentDays(state: s, now: date("2026-06-27 12:00"), calendar: calendar)
+        XCTAssertEqual(recent.count, 7)
+        XCTAssertEqual(recent.last?.tokens, 1_000)
+        XCTAssertEqual(recent.last?.label, "27")
+    }
+
+    func testOldStateWithoutDaysStillDecodes() throws {
+        let old = #"{"xp":100,"tokenCarry":0,"tokensToday":0,"mealsToday":0,"totalTokens":100,"totalMeals":1,"dayKey":"2026-06-11","streakDays":1}"#
+        let s = try JSONDecoder().decode(PetCareState.self, from: old.data(using: .utf8)!)
+        XCTAssertNil(s.days)
+        XCTAssertEqual(s.xp, 100)
+    }
+
     func testStatePersistsThroughCodable() throws {
         var s = PetCareState()
         PetCare.feedTokens(123_456, state: &s, now: date("2026-06-12 10:00"), calendar: calendar)

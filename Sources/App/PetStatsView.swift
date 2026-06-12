@@ -1,15 +1,15 @@
 import SwiftUI
 import AgentPetCore
 
-/// The pet's right-click card: stats only — who this companion is, its level,
-/// XP progress, hunger and feeding numbers. Controls live in the menu bar
-/// popover and Settings, not here.
+/// The pet's right-click HUD: stats only — identity, XP, hunger, feeding
+/// numbers, a 7-day burn trend, and subscription limits when OpenUsage runs.
+/// Controls live in the menu bar popover and Settings, not here.
 struct PetStatsView: View {
     @ObservedObject private var care = PetCareController.shared
     @ObservedObject private var pet = PetController.shared
     @ObservedObject private var imagePets = ImagePetStore.shared
+    @ObservedObject private var usage = OpenUsageClient.shared
 
-    private static let stageIcons = ["leaf.fill", "pawprint.fill", "binoculars.fill", "shield.fill", "crown.fill"]
     private static let stageColors: [Color] = [.green, .teal, .blue, .purple, .orange]
 
     private var pack: ImagePetPack? {
@@ -20,91 +20,189 @@ struct PetStatsView: View {
 
     var body: some View {
         let state = care.current
-        VStack(alignment: .leading, spacing: 10) {
-            // Who
-            HStack(spacing: 10) {
-                Group {
-                    if let frame = pack?.clip(0).first {
-                        Image(nsImage: frame).resizable().interpolation(.none).scaledToFit()
-                    } else {
-                        Image(systemName: "pawprint.fill").foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: 44, height: 44)
-                .background(RoundedRectangle(cornerRadius: 10).fill(stageColor.opacity(0.14)))
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(pack?.displayName ?? NSLocalizedString("Your pet", comment: ""))
-                        .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
-                    HStack(spacing: 6) {
-                        Text(verbatim: "Lv \(care.level)")
-                            .font(.system(size: 12, weight: .bold)).foregroundStyle(stageColor)
-                        Text(NSLocalizedString(care.stageKey, comment: "stage"))
-                            .font(.system(size: 10, weight: .semibold))
-                            .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(Capsule().fill(stageColor.opacity(0.2)))
-                            .foregroundStyle(stageColor)
-                    }
-                }
-                Spacer()
-                Text(hungerText)
-                    .font(.system(size: 11)).foregroundStyle(.white.opacity(0.6))
-            }
-
-            // XP
-            VStack(alignment: .leading, spacing: 4) {
-                ProgressView(value: care.levelProgress).tint(stageColor).controlSize(.small)
-                Text(verbatim: "\(state.xp) / \(PetCare.xpToReach(level: care.level + 1)) XP")
-                    .font(.system(size: 10)).foregroundStyle(.white.opacity(0.45))
-            }
-
-            divider
-
-            statRow(label: NSLocalizedString("Today", comment: ""),
-                    value: todayValue(state))
-            statRow(label: NSLocalizedString("Streak", comment: ""),
-                    value: streakValue(state))
-            statRow(label: NSLocalizedString("Lifetime", comment: ""),
-                    value: lifetimeValue(state))
+        VStack(alignment: .leading, spacing: 12) {
+            header(state)
+            xpBlock(state)
+            statGrid(state)
+            trendBlock(state)
+            usageBlock
             if let last = state.lastFedAt {
-                statRow(label: NSLocalizedString("Last fed", comment: ""),
-                        value: last.formatted(.relative(presentation: .named)))
+                HStack {
+                    Text("Last fed").font(.system(size: 10)).foregroundStyle(.white.opacity(0.4))
+                    Spacer()
+                    Text(verbatim: last.formatted(.relative(presentation: .named)))
+                        .font(.system(size: 10)).foregroundStyle(.white.opacity(0.55))
+                }
             }
         }
         .padding(14)
-        .frame(width: 280)
+        .frame(width: 300)
         .background(.regularMaterial)
         .environment(\.colorScheme, .dark)
         .noFocusRing()
     }
 
-    private var divider: some View { Divider().overlay(Color.white.opacity(0.08)) }
+    // MARK: - Header
 
-    private func statRow(label: String, value: String) -> some View {
-        HStack {
-            Text(label).font(.system(size: 11)).foregroundStyle(.white.opacity(0.45))
+    private func header(_ state: PetCareState) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                if let frame = pack?.clip(0).first {
+                    Image(nsImage: frame).resizable().interpolation(.none).scaledToFit().padding(4)
+                } else {
+                    Image(systemName: "pawprint.fill").foregroundStyle(.secondary)
+                }
+            }
+            .frame(width: 46, height: 46)
+            .background(RoundedRectangle(cornerRadius: 10).fill(stageColor.opacity(0.14)))
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(pack?.displayName ?? NSLocalizedString("Your pet", comment: ""))
+                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
+                HStack(spacing: 6) {
+                    Text(verbatim: "Lv \(care.level)")
+                        .font(.system(size: 12, weight: .bold)).foregroundStyle(stageColor)
+                    Text(NSLocalizedString(care.stageKey, comment: "stage"))
+                        .font(.system(size: 10, weight: .semibold))
+                        .padding(.horizontal, 6).padding(.vertical, 2)
+                        .background(Capsule().fill(stageColor.opacity(0.2)))
+                        .foregroundStyle(stageColor)
+                }
+            }
             Spacer()
-            Text(verbatim: value).font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.85))
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(hungerText)
+                    .font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.7))
+                ProgressView(value: fullness)
+                    .tint(fullness > 0.5 ? .green : (fullness > 0.25 ? .orange : .red))
+                    .controlSize(.small)
+                    .frame(width: 64)
+            }
         }
     }
 
-    private func todayValue(_ s: PetCareState) -> String {
-        if s.mealsToday == 1 {
-            return String(format: NSLocalizedString("%@ tokens · 1 meal", comment: ""), Self.tokenString(s.tokensToday))
+    // MARK: - XP
+
+    private func xpBlock(_ state: PetCareState) -> some View {
+        let next = PetCare.xpToReach(level: care.level + 1)
+        return VStack(alignment: .leading, spacing: 4) {
+            ProgressView(value: care.levelProgress).tint(stageColor).controlSize(.small)
+            HStack {
+                Text(verbatim: "\(Self.plain(state.xp)) / \(Self.plain(next)) XP")
+                    .font(.system(size: 10)).foregroundStyle(.white.opacity(0.45))
+                Spacer()
+                Text(verbatim: "\(Int((care.levelProgress * 100).rounded()))%")
+                    .font(.system(size: 10, weight: .semibold)).foregroundStyle(stageColor)
+            }
         }
-        return String(format: NSLocalizedString("%@ tokens · %d meals", comment: ""),
-                      Self.tokenString(s.tokensToday), s.mealsToday)
+    }
+
+    // MARK: - Stat grid
+
+    private func statGrid(_ state: PetCareState) -> some View {
+        let cells: [(String, String, String)] = [
+            (NSLocalizedString("Today", comment: ""), Self.tokenString(state.tokensToday),
+             mealText(state.mealsToday)),
+            (NSLocalizedString("Streak", comment: ""), streakValue(state),
+             NSLocalizedString("days fed", comment: "")),
+            (NSLocalizedString("Lifetime", comment: ""), Self.tokenString(state.totalTokens),
+             NSLocalizedString("tokens eaten", comment: "")),
+            (NSLocalizedString("Sessions", comment: ""), "\(state.totalMeals)",
+             NSLocalizedString("completed", comment: "")),
+        ]
+        return LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
+            ForEach(cells, id: \.0) { cell in
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(cell.0.uppercased())
+                        .font(.system(size: 8, weight: .semibold)).tracking(0.8)
+                        .foregroundStyle(.white.opacity(0.35))
+                    Text(verbatim: cell.1)
+                        .font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                    Text(verbatim: cell.2)
+                        .font(.system(size: 9)).foregroundStyle(.white.opacity(0.45))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 9).padding(.vertical, 7)
+                .background(RoundedRectangle(cornerRadius: 8).fill(Color.white.opacity(0.06)))
+            }
+        }
+    }
+
+    // MARK: - 7-day trend
+
+    private func trendBlock(_ state: PetCareState) -> some View {
+        let series = PetCare.recentDays(state: state, now: Date())
+        let peak = max(series.map(\.tokens).max() ?? 0, 1)
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("Burn, last 7 days")
+                    .font(.system(size: 9, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(.white.opacity(0.35))
+                Spacer()
+                Text(verbatim: Self.tokenString(series.map(\.tokens).reduce(0, +)))
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(.white.opacity(0.55))
+            }
+            HStack(alignment: .bottom, spacing: 5) {
+                ForEach(Array(series.enumerated()), id: \.offset) { i, day in
+                    VStack(spacing: 2) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(i == series.count - 1 ? stageColor : stageColor.opacity(0.4))
+                            .frame(height: max(3, CGFloat(day.tokens) / CGFloat(peak) * 34))
+                            .frame(maxWidth: .infinity)
+                        Text(verbatim: day.label)
+                            .font(.system(size: 8)).foregroundStyle(.white.opacity(0.35))
+                    }
+                }
+            }
+            .frame(height: 48, alignment: .bottom)
+        }
+    }
+
+    // MARK: - Usage / limits
+
+    @ViewBuilder private var usageBlock: some View {
+        if usage.available && !usage.providers.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Limits")
+                    .font(.system(size: 9, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(.white.opacity(0.35))
+                ForEach(usage.providers) { p in
+                    HStack(spacing: 8) {
+                        Text(verbatim: p.displayName)
+                            .font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.85))
+                            .frame(width: 76, alignment: .leading)
+                        ProgressView(value: p.fractionLeft ?? 1)
+                            .tint((p.fractionLeft ?? 1) < 0.15 ? .red : ((p.fractionLeft ?? 1) < 0.4 ? .orange : .green))
+                            .controlSize(.small)
+                        if let left = p.fractionLeft {
+                            Text(verbatim: "\(Int((left * 100).rounded()))%")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(.white.opacity(0.6))
+                                .frame(width: 32, alignment: .trailing)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Derived
+
+    /// Continuous fullness 0…1 (48h since the last feeding → empty).
+    private var fullness: Double {
+        guard let last = care.current.lastFedAt else { return 0.5 }
+        let hours = Date().timeIntervalSince(last) / 3600
+        return max(0, min(1, 1 - hours / 48))
+    }
+
+    private func mealText(_ meals: Int) -> String {
+        meals == 1
+            ? NSLocalizedString("1 meal", comment: "")
+            : String(format: NSLocalizedString("%d meals", comment: ""), meals)
     }
 
     private func streakValue(_ s: PetCareState) -> String {
-        s.streakDays == 1
-            ? NSLocalizedString("1 day", comment: "")
-            : String(format: NSLocalizedString("%d days", comment: ""), s.streakDays)
-    }
-
-    private func lifetimeValue(_ s: PetCareState) -> String {
-        String(format: NSLocalizedString("%@ tokens · %d sessions", comment: ""),
-               Self.tokenString(s.totalTokens), s.totalMeals)
+        "\(s.streakDays)"
     }
 
     private var hungerText: String {
@@ -123,5 +221,11 @@ struct PetStatsView: View {
         case 1_000...: return String(format: "%.0fk", Double(n) / 1_000)
         default: return "\(n)"
         }
+    }
+
+    private static func plain(_ n: Int) -> String {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        return f.string(from: NSNumber(value: n)) ?? "\(n)"
     }
 }

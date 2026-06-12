@@ -87,7 +87,7 @@ struct CareTabView: View {
             Section("Today") {
                 LabeledContent("Tokens eaten") {
                     VStack(alignment: .trailing, spacing: 1) {
-                        Text(verbatim: Self.tokenString(care.current.tokensToday))
+                        Text(verbatim: Self.plain(care.current.tokensToday))
                         if care.current.tokensToday >= PetCare.dailyTokenCap {
                             Text("Full! The daily bowl is empty.")
                                 .font(.caption).foregroundStyle(.orange)
@@ -103,7 +103,7 @@ struct CareTabView: View {
             }
 
             Section("Lifetime") {
-                LabeledContent("Total tokens eaten", value: Self.tokenString(care.current.totalTokens))
+                LabeledContent("Total tokens eaten", value: Self.plain(care.current.totalTokens))
                 LabeledContent("Total sessions", value: "\(care.current.totalMeals)")
             }
 

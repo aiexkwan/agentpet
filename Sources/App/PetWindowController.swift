@@ -76,8 +76,13 @@ final class PetWindowController: ObservableObject {
             let handled = MainActor.assumeIsolated { () -> Bool in
                 guard let self, let panel = self.panel, event.window === panel,
                       let content = panel.contentView else { return false }
+                // The pet sits at the visual bottom of the window. NSHostingView
+                // is flipped (origin top-left), so the pet's rect starts at
+                // bounds.height − petPoint there — anchoring at y:0 would point
+                // the popover at the bubble high above the pet.
                 let petPoint = PetController.shared.petPoint
-                let rect = NSRect(x: (content.bounds.width - petPoint) / 2, y: 0,
+                let y = content.isFlipped ? content.bounds.height - petPoint : 0
+                let rect = NSRect(x: (content.bounds.width - petPoint) / 2, y: y,
                                   width: petPoint, height: petPoint)
                 self.showStatsPopover(relativeTo: rect, of: content)
                 return true
@@ -99,7 +104,8 @@ final class PetWindowController: ObservableObject {
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: PetStatsView())
         statsPopover = popover
-        popover.show(relativeTo: rect, of: view, preferredEdge: .maxY)
+        // In a flipped view "above the pet's head" is the minY edge.
+        popover.show(relativeTo: rect, of: view, preferredEdge: view.isFlipped ? .minY : .maxY)
     }
 
     /// First-time placement: bottom-right of the main screen.

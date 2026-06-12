@@ -593,9 +593,10 @@ private struct PetThumb: View {
     var onDelete: (() -> Void)? = nil
     @State private var hovering = false
 
-    /// This companion's level — shown once it has been fed at least once.
-    private var level: Int? {
-        guard let state = PetCareController.shared.states[pack.id], state.xp > 0 else { return nil }
+    /// This companion's level: raised pets show their real level, the rest
+    /// show "Lv 0" so the chooser reads like a roster.
+    private var level: Int {
+        guard let state = PetCareController.shared.states[pack.id], state.xp > 0 else { return 0 }
         return PetCare.level(forXP: state.xp)
     }
 
@@ -613,14 +614,12 @@ private struct PetThumb: View {
         }
         .buttonStyle(.plain)
         .overlay(alignment: .topLeading) {
-            if let level {
-                Text(verbatim: "Lv \(level)")
-                    .font(.system(size: 9, weight: .bold))
-                    .padding(.horizontal, 5).padding(.vertical, 1.5)
-                    .background(Capsule().fill(Color.systemAccent.opacity(0.85)))
-                    .foregroundStyle(.white)
-                    .offset(x: -3, y: -3)
-            }
+            Text(verbatim: "Lv \(level)")
+                .font(.system(size: 9, weight: .bold))
+                .padding(.horizontal, 5).padding(.vertical, 1.5)
+                .background(Capsule().fill(level > 0 ? Color.systemAccent.opacity(0.85) : Color.secondary.opacity(0.45)))
+                .foregroundStyle(.white)
+                .offset(x: -3, y: -3)
         }
         .overlay(alignment: .topTrailing) {
             if hovering, let onDelete {

@@ -32,6 +32,10 @@ public struct PetCareState: Codable, Equatable, Sendable {
     public var streakDays: Int
     /// Day of the most recent feeding, for streak bookkeeping.
     public var lastFedDayKey: String?
+    /// Tokens eaten per day ("2026-06-12" → tokens), kept for the last 14 days
+    /// to draw the weekly trend. Optional so states saved before this field
+    /// existed still decode.
+    public var days: [String: Int]?
 
     public init() {
         xp = 0
@@ -44,6 +48,7 @@ public struct PetCareState: Codable, Equatable, Sendable {
         dayKey = ""
         streakDays = 0
         lastFedDayKey = nil
+        days = [:]
     }
 }
 
@@ -140,6 +145,16 @@ public enum PetCare {
         state.totalTokens += tokens
         state.tokensToday += counted
 
+        // Daily history for the weekly trend (full burn, not just the capped
+        // part). Pruned to the most recent 14 entries.
+        let today = dayKey(for: now, calendar: calendar)
+        var days = state.days ?? [:]
+        days[today, default: 0] += tokens
+        if days.count > 14 {
+            for key in days.keys.sorted().dropLast(14) { days.removeValue(forKey: key) }
+        }
+        state.days = days
+
         var gained = 0
         if counted > 0 {
             let pool = state.tokenCarry + counted
@@ -174,6 +189,21 @@ public enum PetCare {
         state.dayKey = today
         state.tokensToday = 0
         state.mealsToday = 0
+    }
+
+    /// Tokens per day for the trailing `count` days ending today, oldest first.
+    /// Labels are the day-of-month, for compact trend axes.
+    public static func recentDays(
+        state: PetCareState, now: Date, count: Int = 7, calendar: Calendar = .current
+    ) -> [(label: String, tokens: Int)] {
+        var out: [(String, Int)] = []
+        for offset in stride(from: count - 1, through: 0, by: -1) {
+            guard let d = calendar.date(byAdding: .day, value: -offset, to: now) else { continue }
+            let key = dayKey(for: d, calendar: calendar)
+            let day = calendar.dateComponents([.day], from: d).day ?? 0
+            out.append(("\(day)", state.days?[key] ?? 0))
+        }
+        return out
     }
 
     public static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
