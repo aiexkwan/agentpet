@@ -35,13 +35,36 @@ pub fn run_hook(args: &[String]) {
     let _ = std::io::stdin().read_to_string(&mut buf);
     let v: Value = serde_json::from_str(&buf).unwrap_or(Value::Null);
 
-    let event = first_str(&v, &["hook_event_name", "agent_action_name", "hookEventName", "eventName"]);
+    // Antigravity sends no event-name field; infer state from discriminator fields
+    // (mirrors AntigravityHookPayload.makeEvent in the macOS core).
+    let event = if agent == "antigravity" {
+        if v.get("terminationReason").is_some() || v.get("fullyIdle").is_some() {
+            Some("done".to_string())
+        } else if v.get("toolCall").is_some()
+            || v.get("invocationNum").is_some()
+            || v.get("stepIdx").is_some()
+        {
+            Some("working".to_string())
+        } else {
+            None
+        }
+    } else {
+        first_str(&v, &["hook_event_name", "agent_action_name", "hookEventName", "eventName"])
+    };
     let session = first_str(&v, &["session_id", "conversation_id", "trajectory_id", "sessionId", "conversationId"]);
     let project = first_str(&v, &["cwd", "projectRoot"])
         .or_else(|| {
             v.get("workspace_roots")
                 .and_then(|a| a.as_array())
                 .and_then(|a| a.first())
+                .and_then(|x| x.as_str())
+                .map(String::from)
+        })
+        .or_else(|| {
+            // Antigravity uses camelCase workspacePaths (array), not workspace_roots
+            v.get("workspacePaths")
+                .and_then(|a| a.as_array())
+                .and_then(|a| a.iter().find(|x| x.as_str().map(|s| !s.is_empty()).unwrap_or(false)))
                 .and_then(|x| x.as_str())
                 .map(String::from)
         })
@@ -204,7 +227,7 @@ fn flag(args: &[String], name: &str) -> Option<String> {
     None
 }
 
-fn first_str(v: &Value, keys: &[&str]) -> Option<String> {
+pub(super) fn first_str(v: &Value, keys: &[&str]) -> Option<String> {
     for k in keys {
         if let Some(s) = v.get(*k).and_then(|x| x.as_str()) {
             if !s.is_empty() {
@@ -213,6 +236,114 @@ fn first_str(v: &Value, keys: &[&str]) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    fn infer_antigravity_event(v: &serde_json::Value) -> Option<String> {
+        if v.get("terminationReason").is_some() || v.get("fullyIdle").is_some() {
+            Some("done".to_string())
+        } else if v.get("toolCall").is_some()
+            || v.get("invocationNum").is_some()
+            || v.get("stepIdx").is_some()
+        {
+            Some("working".to_string())
+        } else {
+            None
+        }
+    }
+
+    fn extract_project(v: &serde_json::Value) -> String {
+        super::first_str(v, &["cwd", "projectRoot"])
+            .or_else(|| {
+                v.get("workspace_roots")
+                    .and_then(|a| a.as_array())
+                    .and_then(|a| a.first())
+                    .and_then(|x| x.as_str())
+                    .map(String::from)
+            })
+            .or_else(|| {
+                v.get("workspacePaths")
+                    .and_then(|a| a.as_array())
+                    .and_then(|a| a.iter().find(|x| x.as_str().map(|s| !s.is_empty()).unwrap_or(false)))
+                    .and_then(|x| x.as_str())
+                    .map(String::from)
+            })
+            .unwrap_or_default()
+    }
+
+    // --- Antigravity event inference ---
+
+    #[test]
+    fn antigravity_step_idx_is_working() {
+        let v = json!({"conversationId":"c1","workspacePaths":["/Users/me/proj"],"stepIdx":0,"toolCall":{"name":"run_command"}});
+        assert_eq!(infer_antigravity_event(&v), Some("working".to_string()));
+    }
+
+    #[test]
+    fn antigravity_invocation_num_is_working() {
+        let v = json!({"conversationId":"c3","invocationNum":2,"initialNumSteps":5});
+        assert_eq!(infer_antigravity_event(&v), Some("working".to_string()));
+    }
+
+    #[test]
+    fn antigravity_termination_reason_is_done() {
+        let v = json!({"conversationId":"c2","executionNum":1,"terminationReason":"model_stop","fullyIdle":true});
+        assert_eq!(infer_antigravity_event(&v), Some("done".to_string()));
+    }
+
+    #[test]
+    fn antigravity_fully_idle_alone_is_done() {
+        let v = json!({"conversationId":"c4","fullyIdle":true});
+        assert_eq!(infer_antigravity_event(&v), Some("done".to_string()));
+    }
+
+    #[test]
+    fn antigravity_done_takes_priority_over_working_fields() {
+        // terminationReason present alongside stepIdx — done wins (stop event).
+        let v = json!({"conversationId":"c5","terminationReason":"model_stop","stepIdx":3});
+        assert_eq!(infer_antigravity_event(&v), Some("done".to_string()));
+    }
+
+    #[test]
+    fn antigravity_no_discriminator_returns_none() {
+        let v = json!({"conversationId":"c6","workspacePaths":["/proj"]});
+        assert_eq!(infer_antigravity_event(&v), None);
+    }
+
+    // --- project extraction ---
+
+    #[test]
+    fn project_from_cwd() {
+        let v = json!({"cwd":"/home/user/proj","eventName":"PreToolUse"});
+        assert_eq!(extract_project(&v), "/home/user/proj");
+    }
+
+    #[test]
+    fn project_from_workspace_roots() {
+        let v = json!({"workspace_roots":["/home/user/proj"]});
+        assert_eq!(extract_project(&v), "/home/user/proj");
+    }
+
+    #[test]
+    fn project_from_workspace_paths_camel_case() {
+        let v = json!({"conversationId":"c1","workspacePaths":["/Users/me/proj"],"stepIdx":0});
+        assert_eq!(extract_project(&v), "/Users/me/proj");
+    }
+
+    #[test]
+    fn project_skips_empty_workspace_paths_entries() {
+        let v = json!({"workspacePaths":["","/Users/me/proj"]});
+        assert_eq!(extract_project(&v), "/Users/me/proj");
+    }
+
+    #[test]
+    fn project_empty_when_no_field() {
+        let v = json!({"conversationId":"c1","stepIdx":0});
+        assert_eq!(extract_project(&v), "");
+    }
 }
 
 /// Minimal HTTP POST to the local listener, bounded by short timeouts so a hook
