@@ -31,6 +31,7 @@ export const GET: APIRoute = async ({ url }) => {
     .all();
 
   const pets = (rows?.results ?? []).map((r: any) => ({
+    id: r.pet_id,
     name: r.name || r.pet_id,
     xp: r.xp,
     tokens: r.tokens,

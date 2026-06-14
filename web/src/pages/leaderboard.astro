@@ -168,9 +168,10 @@ import Hero from "../components/Hero.astro";
         const owner = p.owner ? esc(p.owner) : "";
         // Prefer the synced sprite thumbnail; fall back to slicing the catalog
         // sprite by pet id; finally an initial.
+        const initial = (p.name || "?").charAt(0).toUpperCase();
         const preview = p.thumb
           ? `<img src="${p.thumb}" alt="" class="pixel-art h-10 w-10 object-contain" />`
-          : `<canvas class="care-thumb h-10 w-10" width="80" height="80" data-slug="${esc(p.id || "")}"></canvas>`;
+          : `<span class="care-fallback absolute font-display text-sm font-bold" style="color:${color}">${esc(initial)}</span><canvas class="care-thumb relative h-10 w-10" width="80" height="80" data-slug="${esc(p.id || "")}"></canvas>`;
         const ownerTag = owner
           ? `<a href="https://github.com/${owner}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-700">${p.ownerAvatar ? `<img src="${p.ownerAvatar}" class="h-4 w-4 rounded-full" alt="" />` : ""}${owner}</a>`
           : `<span class="text-xs text-faint">someone</span>`;
@@ -190,7 +191,21 @@ import Hero from "../components/Hero.astro";
             </span>
           </div>`;
       }).join("");
-      box.querySelectorAll<HTMLCanvasElement>("canvas.care-thumb").forEach((cv) => { if (cv.dataset.slug) drawThumb(cv, cv.dataset.slug); });
+      box.querySelectorAll<HTMLCanvasElement>("canvas.care-thumb").forEach((cv) => {
+        const fallback = cv.parentElement?.querySelector<HTMLElement>(".care-fallback");
+        if (!cv.dataset.slug) return;  // keep the letter
+        const ctx = cv.getContext("2d")!; ctx.imageSmoothingEnabled = false;
+        const img = new Image();
+        img.onload = () => {
+          const f = firstFrame(img);
+          if (!f) return;  // unsliceable: leave the letter showing
+          const s = Math.min(cv.width / f.w, cv.height / f.h) * 0.9, dw = f.w * s, dh = f.h * s;
+          ctx.clearRect(0, 0, cv.width, cv.height);
+          ctx.drawImage(img, f.x, f.y, f.w, f.h, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
+          if (fallback) fallback.style.display = "none";
+        };
+        img.src = "/api/sprite/" + cv.dataset.slug;
+      });
     }
 
     (async () => {
