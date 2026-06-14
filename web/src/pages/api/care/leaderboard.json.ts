@@ -3,13 +3,20 @@ import { getDB, ensureSchema } from "../../../lib/db";
 
 export const prerender = false;
 
-// Public top-companions board: highest-XP pets across everyone, with the owner.
-export const GET: APIRoute = async () => {
+// Public top-companions board. `?by=tokens` ranks by lifetime tokens fed;
+// anything else ranks by XP (level). The owner comes from the users table.
+export const GET: APIRoute = async ({ url }) => {
   const db = getDB();
   if (!db) {
     return new Response(JSON.stringify({ pets: [] }), { headers: { "content-type": "application/json" } });
   }
   await ensureSchema(db);
+
+  // by=tokens → lifetime tokens (Claude only); by=sessions → finished sessions
+  // (fair across every agent); default → XP/level (overall).
+  const by = url.searchParams.get("by");
+  const orderCol = by === "tokens" ? "c.tokens" : by === "sessions" ? "c.meals" : "c.xp";
+  const guard = by === "tokens" ? "c.tokens > 0" : by === "sessions" ? "c.meals > 0" : "c.xp > 0";
 
   const rows: any = await db
     .prepare(
@@ -17,8 +24,8 @@ export const GET: APIRoute = async () => {
               u.login AS login, u.avatar AS avatar
        FROM care_pets c
        LEFT JOIN users u ON u.id = c.user_id
-       WHERE c.xp > 0
-       ORDER BY c.xp DESC
+       WHERE ${guard}
+       ORDER BY ${orderCol} DESC
        LIMIT 50`
     )
     .all();

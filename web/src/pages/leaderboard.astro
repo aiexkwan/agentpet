@@ -3,34 +3,76 @@ import Base from "../layouts/Base.astro";
 import Icon from "../components/Icon.astro";
 import Hero from "../components/Hero.astro";
 ---
-<Base title="Leaderboard · AgentPet" description="The most liked pets and the community's biggest fans." active="leaderboard">
+<Base title="Leaderboard · AgentPet" description="Top pets by level and by tokens burned, the most liked companions, and the community's biggest fans." active="leaderboard">
   <Hero
-    eyebrow="Community favourites"
+    eyebrow="Rankings"
     icon="star"
     title="The"
     accent="leaderboard"
-    lead="The most liked pixel companions, and the fans who show them the most love. Sign in and tap the heart to move the rankings."
+    lead="See whose companion is the strongest, who burns the most tokens, and which pets the community loves most."
   />
 
-  <!-- top raised companions -->
+  <!-- tab bar -->
   <section class="px-4 pt-6">
     <div class="mx-auto max-w-6xl">
-      <div class="card p-6 sm:p-7">
-        <div class="flex items-center gap-2">
-          <span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Icon name="paw" class="h-5 w-5" /></span>
-          <h2 class="font-display text-xl font-bold text-ink">Top companions</h2>
-          <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">by XP</span>
-        </div>
-        <p class="mt-1 text-sm text-muted">The highest-level pets across the community, raised by feeding real agent work.</p>
-        <div id="lb-companions" class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
-        <div id="lb-companions-empty" class="hidden py-10 text-center text-muted">No raised companions yet. <a href="/profile" class="font-semibold text-brand-600 hover:text-brand-700">Connect the app</a> to be the first!</div>
+      <div role="tablist" class="mx-auto flex w-fit items-center gap-1.5 rounded-full border border-line bg-white p-1.5 shadow-soft">
+        <button data-tab="companions" class="lb-tab inline-flex items-center gap-2 rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-soft transition"><Icon name="paw" class="h-4 w-4" /> Companions</button>
+        <button data-tab="community" class="lb-tab inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-muted transition hover:bg-brand-50 hover:text-brand-700"><Icon name="heart" class="h-4 w-4" /> Community</button>
       </div>
     </div>
   </section>
 
-  <section class="px-4 pt-6">
+  <!-- COMPANIONS tab -->
+  <section data-panel="companions" class="lb-panel px-4 pt-6">
+    <div class="mx-auto max-w-6xl">
+      <!-- sub toggle -->
+      <div class="flex flex-wrap items-center justify-center gap-2">
+        <button data-board="xp" class="lb-sub chip chip-active">By level (XP)</button>
+        <button data-board="sessions" class="lb-sub chip">By sessions</button>
+        <button data-board="tokens" class="lb-sub chip">By tokens</button>
+      </div>
+
+      <!-- by XP -->
+      <div data-board-panel="xp" class="card mt-5 p-6 sm:p-7">
+        <div class="flex items-center gap-2">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-amber-50 text-amber-600"><Icon name="paw" class="h-5 w-5" /></span>
+          <h2 class="font-display text-xl font-bold text-ink">Highest level</h2>
+          <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">overall</span>
+        </div>
+        <p class="mt-1 text-sm text-muted">The all-round ranking. XP comes from finishing sessions (25 XP each, counted for every agent) plus tokens burned (1 XP / 5,000 tokens, Claude only).</p>
+        <div id="lb-xp" class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <div id="lb-xp-empty" class="hidden py-10 text-center text-muted">No raised companions yet. <a href="/profile" class="font-semibold text-brand-600 hover:text-brand-700">Connect the app</a> to be the first!</div>
+      </div>
+
+      <!-- by sessions -->
+      <div data-board-panel="sessions" class="card mt-5 hidden p-6 sm:p-7">
+        <div class="flex items-center gap-2">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><Icon name="check" class="h-5 w-5" /></span>
+          <h2 class="font-display text-xl font-bold text-ink">Most sessions finished</h2>
+          <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-bold text-emerald-700">fairest</span>
+        </div>
+        <p class="mt-1 text-sm text-muted">The fairest board across every agent. Every finished run counts the same whether you use Claude Code, Codex, Cursor, Gemini or anything else.</p>
+        <div id="lb-sessions" class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <div id="lb-sessions-empty" class="hidden py-10 text-center text-muted">No finished sessions yet. <a href="/profile" class="font-semibold text-brand-600 hover:text-brand-700">Connect the app</a> and run an agent!</div>
+      </div>
+
+      <!-- by tokens -->
+      <div data-board-panel="tokens" class="card mt-5 hidden p-6 sm:p-7">
+        <div class="flex items-center gap-2">
+          <span class="grid h-9 w-9 place-items-center rounded-xl bg-teal-50 text-teal-600"><Icon name="bolt" class="h-5 w-5" /></span>
+          <h2 class="font-display text-xl font-bold text-ink">Most tokens burned</h2>
+          <span class="rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">Claude only</span>
+        </div>
+        <p class="mt-1 text-sm text-muted">Lifetime tokens fed to each pet. Read locally from Claude Code transcripts, so this board favours heavy Claude users (other agents report 0 tokens, use the sessions board for them).</p>
+        <div id="lb-tokens" class="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"></div>
+        <div id="lb-tokens-empty" class="hidden py-10 text-center text-muted">No tokens fed yet. <a href="/profile" class="font-semibold text-brand-600 hover:text-brand-700">Connect the app</a> and start coding!</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMUNITY tab -->
+  <section data-panel="community" class="lb-panel hidden px-4 pt-6">
     <div class="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[1.4fr_1fr]">
-      <!-- most liked pets -->
       <div class="card p-6 sm:p-7">
         <div class="flex items-center gap-2">
           <span class="grid h-9 w-9 place-items-center rounded-xl bg-accent-500/15 text-accent-600"><Icon name="heart" class="h-5 w-5" /></span>
@@ -41,7 +83,6 @@ import Hero from "../components/Hero.astro";
       </div>
 
       <div class="space-y-6">
-        <!-- top creators -->
         <div class="card p-6 sm:p-7">
           <div class="flex items-center gap-2">
             <span class="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><Icon name="wand" class="h-5 w-5" /></span>
@@ -51,7 +92,6 @@ import Hero from "../components/Hero.astro";
           <div id="lb-creators-empty" class="hidden py-8 text-center text-sm text-muted">No creators yet. <a href="/submit" class="font-semibold text-brand-600 hover:text-brand-700">Submit a pet</a> to be the first!</div>
         </div>
 
-        <!-- top fans -->
         <div class="card p-6 sm:p-7">
           <div class="flex items-center gap-2">
             <span class="grid h-9 w-9 place-items-center rounded-xl bg-brand-50 text-brand-600"><Icon name="users" class="h-5 w-5" /></span>
@@ -89,10 +129,85 @@ import Hero from "../components/Hero.astro";
       img.src = "/api/sprite/" + slug;
     }
     const esc = (s: string) => String(s).replace(/[^a-zA-Z0-9 ._-]/g, "");
+    const tokenLabel = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
+
+    // ----- tabs -----
+    const tabs = Array.from(document.querySelectorAll<HTMLButtonElement>(".lb-tab"));
+    const panels = Array.from(document.querySelectorAll<HTMLElement>(".lb-panel"));
+    function selectTab(name: string) {
+      tabs.forEach((t) => {
+        const on = t.dataset.tab === name;
+        t.classList.toggle("bg-brand-600", on); t.classList.toggle("text-white", on); t.classList.toggle("shadow-soft", on);
+        t.classList.toggle("text-muted", !on);
+      });
+      panels.forEach((p) => p.classList.toggle("hidden", p.dataset.panel !== name));
+    }
+    tabs.forEach((t) => t.addEventListener("click", () => selectTab(t.dataset.tab!)));
+
+    // ----- companions sub-toggle -----
+    const subs = Array.from(document.querySelectorAll<HTMLButtonElement>(".lb-sub"));
+    function selectBoard(name: string) {
+      subs.forEach((s) => s.classList.toggle("chip-active", s.dataset.board === name));
+      document.querySelectorAll<HTMLElement>("[data-board-panel]").forEach((p) => p.classList.toggle("hidden", p.dataset.boardPanel !== name));
+    }
+    subs.forEach((s) => s.addEventListener("click", () => selectBoard(s.dataset.board!)));
+
+    // ----- care board renderer -----
+    const STAGES2: [number, string, string][] = [[35, "Legend", "#f59e0b"], [20, "Hero", "#a855f7"], [10, "Scout", "#3b82f6"], [5, "Companion", "#14b8a6"], [0, "Hatchling", "#22c55e"]];
+    const levelFor = (xp: number) => { let n = 1; while (60 * (n + 1) * n <= xp) n++; return n; };
+    const stageFor = (lv: number) => { for (const [m, s, c] of STAGES2) if (lv >= m) return [s, c] as [string, string]; return ["Hatchling", "#22c55e"] as [string, string]; };
+
+    function renderCare(boxId: string, pets: any[], metric: "xp" | "tokens" | "sessions") {
+      const box = document.getElementById(boxId)!;
+      const empty = document.getElementById(boxId + "-empty");
+      if (empty) empty.classList.toggle("hidden", pets.length > 0);
+      box.innerHTML = pets.map((p: any, i: number) => {
+        const lv = levelFor(p.xp);
+        const dispLv = Math.max(0, lv - 1);
+        const [, color] = stageFor(lv);
+        const owner = p.owner ? esc(p.owner) : "";
+        // Prefer the synced sprite thumbnail; fall back to slicing the catalog
+        // sprite by pet id; finally an initial.
+        const preview = p.thumb
+          ? `<img src="${p.thumb}" alt="" class="pixel-art h-10 w-10 object-contain" />`
+          : `<canvas class="care-thumb h-10 w-10" width="80" height="80" data-slug="${esc(p.id || "")}"></canvas>`;
+        const ownerTag = owner
+          ? `<a href="https://github.com/${owner}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-700">${p.ownerAvatar ? `<img src="${p.ownerAvatar}" class="h-4 w-4 rounded-full" alt="" />` : ""}${owner}</a>`
+          : `<span class="text-xs text-faint">someone</span>`;
+        const metricBig = metric === "tokens" ? tokenLabel(p.tokens) : metric === "sessions" ? String(p.meals) : "Lv " + dispLv;
+        const metricSub = metric === "tokens" ? "tokens" : metric === "sessions" ? "sessions · Lv " + dispLv : p.xp.toLocaleString() + " XP";
+        return `
+          <div class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2.5">
+            <span class="w-5 shrink-0 text-center font-display text-sm font-bold ${i < 3 ? "text-amber-600" : "text-faint"}">${i + 1}</span>
+            <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl sprite-checker" style="background:${color}14">${preview}<span class="absolute -bottom-1 -right-1 rounded-full bg-white px-1 text-[9px] font-bold shadow" style="color:${color}">${dispLv}</span></span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-display font-semibold text-ink">${esc(p.name)}</span>
+              ${ownerTag}
+            </span>
+            <span class="shrink-0 text-right">
+              <span class="block font-display text-base font-bold" style="color:${color}">${metricBig}</span>
+              <span class="block text-[11px] text-faint">${metricSub}</span>
+            </span>
+          </div>`;
+      }).join("");
+      box.querySelectorAll<HTMLCanvasElement>("canvas.care-thumb").forEach((cv) => { if (cv.dataset.slug) drawThumb(cv, cv.dataset.slug); });
+    }
 
     (async () => {
       const skelRow = `<div class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2"><span class="h-6 w-6 shrink-0 rounded-full ap-skel"></span><span class="h-9 w-9 shrink-0 rounded-full ap-skel"></span><span class="h-4 flex-1 rounded ap-skel"></span></div>`;
       ["lb-pets", "lb-fans", "lb-creators"].forEach((id) => { const el = document.getElementById(id); if (el) el.innerHTML = skelRow.repeat(5); });
+
+      // Care boards (three orderings).
+      const [byXp, bySess, byTok] = await Promise.all([
+        fetch("/api/care/leaderboard.json").then((r) => r.json()).catch(() => ({ pets: [] })),
+        fetch("/api/care/leaderboard.json?by=sessions").then((r) => r.json()).catch(() => ({ pets: [] })),
+        fetch("/api/care/leaderboard.json?by=tokens").then((r) => r.json()).catch(() => ({ pets: [] })),
+      ]);
+      renderCare("lb-xp", byXp.pets || [], "xp");
+      renderCare("lb-sessions", bySess.pets || [], "sessions");
+      renderCare("lb-tokens", byTok.pets || [], "tokens");
+
+      // Community boards.
       const [lb, pj] = await Promise.all([
         fetch("/api/leaderboard.json").then((r) => r.json()).catch(() => ({ pets: [], fans: [] })),
         fetch("/api/pets.json").then((r) => r.json()).catch(() => ({ pets: [] })),
@@ -140,43 +255,6 @@ import Hero from "../components/Hero.astro";
           <span class="shrink-0 text-sm font-medium text-muted">${u.count} like${u.count === 1 ? "" : "s"}</span>
         </a>`;
       }).join("");
-
-      // Top raised companions (care leaderboard).
-      const STAGES2: [number, string, string][] = [[35, "Legend", "#f59e0b"], [20, "Hero", "#a855f7"], [10, "Scout", "#3b82f6"], [5, "Companion", "#14b8a6"], [0, "Hatchling", "#22c55e"]];
-      const levelFor = (xp: number) => { let n = 1; while (60 * (n + 1) * n <= xp) n++; return n; };
-      const stageFor = (lv: number) => { for (const [m, s, c] of STAGES2) if (lv >= m) return [s, c] as [string, string]; return ["Hatchling", "#22c55e"] as [string, string]; };
-      const tokenLabel = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? Math.round(n / 1e3) + "k" : String(n);
-      const cBox = document.getElementById("lb-companions");
-      if (cBox) {
-        const cl = await fetch("/api/care/leaderboard.json").then((r) => r.json()).catch(() => ({ pets: [] }));
-        const cpets = cl.pets || [];
-        document.getElementById("lb-companions-empty")!.classList.toggle("hidden", cpets.length > 0);
-        cBox.innerHTML = cpets.map((p: any, i: number) => {
-          const lv = levelFor(p.xp);
-          const dispLv = Math.max(0, lv - 1);
-          const [stage, color] = stageFor(lv);
-          const owner = p.owner ? esc(p.owner) : "";
-          const thumb = p.thumb
-            ? `<img src="${p.thumb}" alt="" class="pixel-art h-10 w-10 object-contain" />`
-            : `<span class="font-display text-sm font-bold" style="color:${color}">${(p.name || "?").charAt(0).toUpperCase()}</span>`;
-          const ownerTag = owner
-            ? `<a href="https://github.com/${owner}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-700">${p.ownerAvatar ? `<img src="${p.ownerAvatar}" class="h-4 w-4 rounded-full" alt="" />` : ""}${owner}</a>`
-            : `<span class="text-xs text-faint">someone</span>`;
-          return `
-            <div class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2.5">
-              <span class="w-5 shrink-0 text-center font-display text-sm font-bold ${i < 3 ? "text-amber-600" : "text-faint"}">${i + 1}</span>
-              <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl" style="background:${color}14">${thumb}<span class="absolute -bottom-1 -right-1 rounded-full bg-white px-1 text-[9px] font-bold" style="color:${color}">${dispLv}</span></span>
-              <span class="min-w-0 flex-1">
-                <span class="block truncate font-display font-semibold text-ink">${esc(p.name)}</span>
-                ${ownerTag}
-              </span>
-              <span class="shrink-0 text-right">
-                <span class="block font-display text-base font-bold" style="color:${color}">Lv ${dispLv}</span>
-                <span class="block text-[11px] text-faint">${p.xp.toLocaleString()} XP</span>
-              </span>
-            </div>`;
-        }).join("");
-      }
     })();
   </script>
 </Base>
