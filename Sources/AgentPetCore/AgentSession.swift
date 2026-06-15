@@ -14,6 +14,8 @@ public struct AgentSession: Identifiable, Sendable, Equatable {
     public var updatedAt: Date
     /// When the session entered its current `state`; resets on state change.
     public var stateSince: Date
+    /// When the session was first created (first `apply` event).
+    public var createdAt: Date
 
     public init(
         id: String,
@@ -24,7 +26,8 @@ public struct AgentSession: Identifiable, Sendable, Equatable {
         message: String? = nil,
         source: AgentSource,
         updatedAt: Date,
-        stateSince: Date? = nil
+        stateSince: Date? = nil,
+        createdAt: Date? = nil
     ) {
         self.id = id
         self.agentKind = agentKind
@@ -35,5 +38,6 @@ public struct AgentSession: Identifiable, Sendable, Equatable {
         self.source = source
         self.updatedAt = updatedAt
         self.stateSince = stateSince ?? updatedAt
+        self.createdAt = createdAt ?? updatedAt
     }
 }

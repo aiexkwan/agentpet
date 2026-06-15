@@ -18,6 +18,8 @@ public final class SessionStore {
     /// anything, so a quiet/abandoned one shouldn't linger as "running".
     public var staleRegisteredAfter: TimeInterval
 
+    public var archiveStore: SessionArchiveStore?
+
     private var byID: [String: AgentSession] = [:]
 
     public init(doneToIdleAfter: TimeInterval = 30,
@@ -70,6 +72,9 @@ public final class SessionStore {
         // A session-end event (agent quit/closed) removes the session at once,
         // so it doesn't linger as "done" until the idle timeout.
         if StateMapper.isSessionEnd(for: event.agentKind, eventName: event.eventName) {
+            if let session = byID[event.sessionId] {
+                archiveStore?.archive(session, startedAt: session.createdAt, endedAt: now)
+            }
             byID.removeValue(forKey: event.sessionId)
             return nil
         }
@@ -116,14 +121,17 @@ public final class SessionStore {
                 }
             case .idle:
                 if quiet >= removeIdleAfter {
+                    archiveStore?.archive(session, startedAt: session.createdAt, endedAt: now)
                     byID.removeValue(forKey: id)
                 }
             case .registered:
                 if quiet >= staleRegisteredAfter {
+                    archiveStore?.archive(session, startedAt: session.createdAt, endedAt: now)
                     byID.removeValue(forKey: id)
                 }
             case .working, .waiting:
                 if quiet >= staleActiveAfter {
+                    archiveStore?.archive(session, startedAt: session.createdAt, endedAt: now)
                     byID.removeValue(forKey: id)
                 }
             }

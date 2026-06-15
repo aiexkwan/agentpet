@@ -12,7 +12,11 @@ final class AppDaemon: ObservableObject {
 
     @Published private(set) var sessions: [AgentSession] = []
 
-    private let store = SessionStore()
+    private let store: SessionStore = {
+        let s = SessionStore()
+        s.archiveStore = SessionArchiveStore.shared
+        return s
+    }()
     private let server = EventSocketServer(path: AgentPetPaths.socketPath)
     private var pruneTimer: Timer?
 
