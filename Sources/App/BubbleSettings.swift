@@ -319,6 +319,9 @@ final class BubbleSettings: ObservableObject {
             ActivityFormatter.currentTheme = activityTheme
         }
     }
+    @Published var reactiveBubblesEnabled: Bool {
+        didSet { ud.set(reactiveBubblesEnabled, forKey: Keys.reactiveBubblesEnabled) }
+    }
 
     // MARK: Computed
 
@@ -357,6 +360,7 @@ final class BubbleSettings: ObservableObject {
         static let hiddenKinds         = "agentpet.bubble.hiddenKinds"
         static let iconChoices     = "agentpet.bubble.iconChoices"
         static let activityTheme   = "agentpet.bubble.activityTheme"
+        static let reactiveBubblesEnabled = "agentpet.bubble.reactiveBubblesEnabled"
     }
 
     init() {
@@ -372,6 +376,7 @@ final class BubbleSettings: ObservableObject {
         groupByKind     = ud.bool(forKey: Keys.groupByKind)
         displayMode = BubbleDisplayMode(rawValue: ud.string(forKey: Keys.displayMode) ?? "") ?? .carousel
         multiAgentBubbleEnabled = ud.object(forKey: Keys.multiAgentBubbleEnabled) as? Bool ?? true
+        reactiveBubblesEnabled = ud.object(forKey: Keys.reactiveBubblesEnabled) as? Bool ?? true
         hiddenKinds        = Set((Self.loadJSON(Keys.hiddenKinds) as [String]? ?? []).compactMap(AgentKind.init(rawValue:)))
         iconChoices    = Self.loadJSON(Keys.iconChoices) ?? [:]
         activityTheme  = ActivityTheme(rawValue: ud.string(forKey: Keys.activityTheme) ?? "") ?? .chef

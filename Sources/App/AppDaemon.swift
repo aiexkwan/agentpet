@@ -41,6 +41,7 @@ final class AppDaemon: ObservableObject {
         pruneTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
             Task { @MainActor [weak self] in self?.prune() }
         }
+        ReactiveEngine.shared.start()
     }
 
     /// Clears the tracked sessions (e.g. after disconnecting an integration).

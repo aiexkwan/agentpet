@@ -170,6 +170,12 @@ final class PetController: ObservableObject {
         }
     }
 
+    func flashReactiveLine(_ line: String) {
+        guard showChat else { return }
+        chatLine = line
+        StatusBarController.shared.refreshTitle()
+    }
+
     private func setMood(_ newMood: PetMood) {
         let changed = newMood != mood
         mood = newMood
