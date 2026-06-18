@@ -82,8 +82,10 @@ final class PetCareController: ObservableObject {
 
     private func mutateCurrent(_ change: (inout PetCareState) -> Void) {
         guard let petID = currentPetID else { return }
-        let levelBefore = PetCare.level(forXP: state(for: petID).xp)
-        var s = state(for: petID)
+        let stateBefore = state(for: petID)
+        let levelBefore = PetCare.level(forXP: stateBefore.xp)
+        let achievementsBefore = stateBefore.unlockedAchievements ?? []
+        var s = stateBefore
         change(&s)
         guard s != states[petID] else { return }
         states[petID] = s
@@ -97,7 +99,20 @@ final class PetCareController: ObservableObject {
             )
             PetController.shared.flashCelebrate(line: line)
         }
+        let achievementsAfter = s.unlockedAchievements ?? []
+        let newAchievements = achievementsAfter.subtracting(achievementsBefore)
+        for achievement in newAchievements {
+            let name = PetCare.achievementDisplayName(achievement)
+            let line = String(
+                format: NSLocalizedString("Achievement unlocked: %@ 🏆", comment: "achievement unlock celebrate line"),
+                name
+            )
+            PetController.shared.flashCelebrate(line: line)
+        }
     }
+
+    /// All achievements unlocked by the currently selected pet.
+    var achievements: Set<Achievement> { current.unlockedAchievements ?? [] }
 
     private func persist() {
         if let data = try? JSONEncoder().encode(states) {

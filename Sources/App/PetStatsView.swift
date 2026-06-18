@@ -25,6 +25,7 @@ struct PetStatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             header(state)
             xpBlock(state)
+            achievementBlock
             statGrid(state)
             trendBlock(state)
             usageBlock
@@ -144,6 +145,51 @@ struct PetStatsView: View {
             Text(String(format: NSLocalizedString("≈ %@ tokens to Lv %d", comment: ""),
                         Self.tokenString(PetCare.tokensToNextLevel(state: state)), care.level + 1))
                 .font(.system(size: 10, weight: .medium)).foregroundStyle(stageColor.opacity(0.9))
+        }
+    }
+
+    // MARK: - Achievements
+
+    private static let achievementSymbols: [Achievement: String] = [
+        .firstMeal:   "fork.knife",
+        .sessions100: "trophy",
+        .sessions500: "trophy.fill",
+        .tokens1M:    "flame",
+        .tokens10M:   "flame.fill",
+        .tokens50M:   "bolt.fill",
+        .level5:      "star",
+        .level10:     "star.fill",
+        .level20:     "shield.fill",
+        .level35:     "crown.fill",
+        .streak7:     "calendar",
+        .streak14:    "calendar.badge.clock",
+        .streak30:    "calendar.badge.checkmark",
+        .nightOwl:    "moon.fill",
+    ]
+
+    private var achievementBlock: some View {
+        let unlocked = care.achievements
+        let total = Achievement.allCases.count
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("Achievements")
+                    .font(.system(size: 9, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(.white.opacity(0.35))
+                Spacer()
+                Text(verbatim: "\(unlocked.count) / \(total)")
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(.white.opacity(0.55))
+            }
+            HStack(spacing: 4) {
+                ForEach(Achievement.allCases, id: \.self) { a in
+                    let symbol = Self.achievementSymbols[a] ?? "star"
+                    let isUnlocked = unlocked.contains(a)
+                    Image(systemName: symbol)
+                        .font(.system(size: 11))
+                        .foregroundStyle(isUnlocked ? stageColor : Color.white.opacity(0.15))
+                        .frame(width: 20, height: 20)
+                        .help(PetCare.achievementDisplayName(a))
+                }
+            }
         }
     }
 
