@@ -25,16 +25,41 @@ final class ImagePetStore: ObservableObject {
         packs.removeAll { $0.id == pack.id }
     }
 
+    /// Full synchronous reload. Used after importing a pet, where slicing every
+    /// pack up front is acceptable; launch uses `loadFast` to stay responsive.
     func reload() {
-        let fm = FileManager.default
-        guard let entries = try? fm.contentsOfDirectory(
-            at: petsDir, includingPropertiesForKeys: [.isDirectoryKey]) else {
-            packs = []
-            return
-        }
-        packs = entries
-            .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
+        packs = Self.directories(in: petsDir)
             .compactMap { SpriteSlicer.loadPack(directory: $0) }
             .sorted { $0.displayName < $1.displayName }
+    }
+
+    /// Launch path: slice only the prioritised pack synchronously so the pet and
+    /// menu bar can appear immediately, then slice the remaining packs on later
+    /// run-loop ticks (yielding between each) so a large library never blocks the
+    /// app from showing up.
+    func loadFast(priorityID: String?) {
+        let dirs = Self.directories(in: petsDir)
+        let priorityDir = priorityID
+            .flatMap { pid in dirs.first { SpriteSlicer.manifestID(directory: $0) == pid } }
+            ?? dirs.first
+        if let pd = priorityDir, let pack = SpriteSlicer.loadPack(directory: pd) {
+            packs = [pack]
+        }
+        let rest = dirs.filter { $0 != priorityDir }
+        guard !rest.isEmpty else { return }
+        Task { @MainActor in
+            for dir in rest {
+                await Task.yield()   // let the menu bar + pet paint first
+                guard let pack = SpriteSlicer.loadPack(directory: dir) else { continue }
+                packs = (packs + [pack]).sorted { $0.displayName < $1.displayName }
+            }
+        }
+    }
+
+    private static func directories(in dir: URL) -> [URL] {
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(
+            at: dir, includingPropertiesForKeys: [.isDirectoryKey]) else { return [] }
+        return entries.filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
     }
 }

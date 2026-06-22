@@ -28,6 +28,16 @@ private struct PetManifest: Decodable {
 /// Loads a spritesheet pet pack and slices its frames by detecting the
 /// transparent gutters between cells, so no grid metadata is required.
 enum SpriteSlicer {
+    /// Reads only the pack id from a directory's manifest, without slicing the
+    /// spritesheet. Lets the store pick the prioritised pack to load first.
+    static func manifestID(directory: URL) -> String? {
+        let manifestURL = directory.appendingPathComponent("pet.json")
+        guard let data = try? Data(contentsOf: manifestURL),
+              let manifest = try? JSONDecoder().decode(PetManifest.self, from: data)
+        else { return nil }
+        return manifest.id
+    }
+
     static func loadPack(directory: URL) -> ImagePetPack? {
         let manifestURL = directory.appendingPathComponent("pet.json")
         guard let data = try? Data(contentsOf: manifestURL),

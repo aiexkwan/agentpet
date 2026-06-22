@@ -21,11 +21,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
         _ = AppLanguage.shared   // apply the saved language before any UI renders
-        ImagePetStore.shared.reload()
+        // Load only the selected pet up front so the menu bar + pet appear at
+        // once; the rest of the library slices in on later run-loop ticks.
+        ImagePetStore.shared.loadFast(priorityID: PetController.shared.selectedPetID)
         if PetController.shared.selectedPetID == nil {
             PetController.shared.selectedPetID = ImagePetStore.shared.packs.first?.id
         }
-        AgentIcons.prewarm()
+        // Agent brand icons aren't needed for first paint; warm them after launch.
+        Task { @MainActor in AgentIcons.prewarm() }
         PetController.shared.start()
         PetWindowController.shared.start()
         AppDaemon.shared.start()
