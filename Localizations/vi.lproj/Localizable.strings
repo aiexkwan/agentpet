@@ -371,6 +371,73 @@
 "Opens buymeacoffee.com in your browser." = "Mở buymeacoffee.com trên trình duyệt.";
 "Quét bằng app ngân hàng bất kỳ (VPBank · NGUYEN THANH DAT)" = "Quét bằng app ngân hàng bất kỳ (VPBank · NGUYEN THANH DAT)";
 
+/* Reactive bubbles — settings */
+"Pet reactive bubbles" = "Bong bóng phản ứng";
+"Pet reacts to rate limits, token usage, hunger, and streaks." = "Pet phản ứng với giới hạn tốc độ, lượng token, độ đói và chuỗi ngày.";
+
+/* Reactive bubbles — rate limit */
+"Usage is climbing~" = "Lượng dùng đang tăng~";
+"Take it easy, no rush" = "Từ từ thôi, không vội";
+"Keep an eye on quota" = "Để ý quota nhé";
+"Rate limit running low…" = "Rate limit sắp hết…";
+"Use sparingly!" = "Dùng tiết kiệm nhé!";
+"Quota getting thin" = "Quota không còn nhiều";
+"Almost out of quota 😰" = "Gần hết quota rồi 😰";
+"Maybe take a break…" = "Nghỉ một chút đi…";
+"Quota nearly spent" = "Quota gần cạn";
+
+/* Reactive bubbles — daily tokens */
+"Burned quite a few tokens today~" = "Hôm nay đốt kha khá token~";
+"Eaten a lot of tokens" = "Ăn nhiều token rồi";
+"Token usage rising" = "Lượng token đang tăng";
+"Big appetite mode!" = "Chế độ ăn khỏe!";
+"Great appetite today~" = "Hôm nay ăn khỏe quá~";
+"Tokens going fast" = "Token hết nhanh lắm";
+"Token usage off the charts today 🔥" = "Lượng token hôm nay bùng nổ 🔥";
+"Token burn is extreme!" = "Đốt token cực kỳ nhiều!";
+"Heavy burn today" = "Hôm nay đốt dữ";
+
+/* Reactive bubbles — session count */
+"5 agents running at once~" = "5 agent chạy cùng lúc~";
+"Lots of agents at work" = "Nhiều agent đang làm việc";
+"Parallelism is up" = "Chạy song song khá nhiều";
+"Command center mode 😳" = "Chế độ trung tâm chỉ huy 😳";
+"So many sessions!" = "Nhiều session quá!";
+"Full throttle" = "Chạy hết công suất";
+
+/* Reactive bubbles — hunger */
+"A little hungry…" = "Hơi đói…";
+"Hmm… want food" = "Hmm… muốn ăn";
+"Tummy rumbling" = "Bụng đang kêu";
+"Haven't been fed in a while 😢" = "Lâu rồi chưa được cho ăn 😢";
+"Hungry…" = "Đói…";
+"Want food…" = "Muốn ăn…";
+"Where did you go… 😭" = "Bạn đi đâu rồi… 😭";
+"About to faint from hunger" = "Sắp ngất vì đói";
+"So hungry" = "Đói quá";
+
+/* Reactive bubbles — streak */
+"Days in a row! Keep going" = "Mấy ngày liên tục! Cố lên";
+"Going strong~" = "Đang rất tốt~";
+"Keeping it up" = "Giữ vững nhé";
+"A whole week straight!" = "Cả tuần liên tục!";
+"Such persistence~" = "Kiên trì quá~";
+"So consistent" = "Ổn định ghê";
+"Legendary streak!" = "Chuỗi ngày huyền thoại!";
+"Incredible!" = "Quá đỉnh!";
+"Unstoppable" = "Không ai cản nổi";
+
+/* Reactive bubbles — daily meals */
+"Lots of sessions today~" = "Hôm nay xong nhiều session~";
+"Good productivity" = "Năng suất tốt";
+"Got quite a bit done" = "Làm được kha khá";
+"Fifty sessions! Efficiency beast" = "Năm mươi session! Quái vật hiệu suất";
+"50+!" = "50+!";
+"Super productive" = "Siêu năng suất";
+"Over 100! Not sleeping today?" = "Hơn 100! Hôm nay không ngủ à?";
+"100+ sessions!" = "100+ session!";
+"Superhuman" = "Siêu nhân";
+
 /* HUD footer */
 "Settings" = "Cài đặt";
 "Updates" = "Cập nhật";

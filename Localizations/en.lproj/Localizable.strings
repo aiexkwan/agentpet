@@ -370,6 +370,73 @@
 "Opens buymeacoffee.com in your browser." = "Opens buymeacoffee.com in your browser.";
 "Quét bằng app ngân hàng bất kỳ (VPBank · NGUYEN THANH DAT)" = "Scan with any banking app (VPBank · NGUYEN THANH DAT)";
 
+/* Reactive bubbles — settings */
+"Pet reactive bubbles" = "Pet reactive bubbles";
+"Pet reacts to rate limits, token usage, hunger, and streaks." = "Pet reacts to rate limits, token usage, hunger, and streaks.";
+
+/* Reactive bubbles — rate limit */
+"Usage is climbing~" = "Usage is climbing~";
+"Take it easy, no rush" = "Take it easy, no rush";
+"Keep an eye on quota" = "Keep an eye on quota";
+"Rate limit running low…" = "Rate limit running low…";
+"Use sparingly!" = "Use sparingly!";
+"Quota getting thin" = "Quota getting thin";
+"Almost out of quota 😰" = "Almost out of quota 😰";
+"Maybe take a break…" = "Maybe take a break…";
+"Quota nearly spent" = "Quota nearly spent";
+
+/* Reactive bubbles — daily tokens */
+"Burned quite a few tokens today~" = "Burned quite a few tokens today~";
+"Eaten a lot of tokens" = "Eaten a lot of tokens";
+"Token usage rising" = "Token usage rising";
+"Big appetite mode!" = "Big appetite mode!";
+"Great appetite today~" = "Great appetite today~";
+"Tokens going fast" = "Tokens going fast";
+"Token usage off the charts today 🔥" = "Token usage off the charts today 🔥";
+"Token burn is extreme!" = "Token burn is extreme!";
+"Heavy burn today" = "Heavy burn today";
+
+/* Reactive bubbles — session count */
+"5 agents running at once~" = "5 agents running at once~";
+"Lots of agents at work" = "Lots of agents at work";
+"Parallelism is up" = "Parallelism is up";
+"Command center mode 😳" = "Command center mode 😳";
+"So many sessions!" = "So many sessions!";
+"Full throttle" = "Full throttle";
+
+/* Reactive bubbles — hunger */
+"A little hungry…" = "A little hungry…";
+"Hmm… want food" = "Hmm… want food";
+"Tummy rumbling" = "Tummy rumbling";
+"Haven't been fed in a while 😢" = "Haven't been fed in a while 😢";
+"Hungry…" = "Hungry…";
+"Want food…" = "Want food…";
+"Where did you go… 😭" = "Where did you go… 😭";
+"About to faint from hunger" = "About to faint from hunger";
+"So hungry" = "So hungry";
+
+/* Reactive bubbles — streak */
+"Days in a row! Keep going" = "Days in a row! Keep going";
+"Going strong~" = "Going strong~";
+"Keeping it up" = "Keeping it up";
+"A whole week straight!" = "A whole week straight!";
+"Such persistence~" = "Such persistence~";
+"So consistent" = "So consistent";
+"Legendary streak!" = "Legendary streak!";
+"Incredible!" = "Incredible!";
+"Unstoppable" = "Unstoppable";
+
+/* Reactive bubbles — daily meals */
+"Lots of sessions today~" = "Lots of sessions today~";
+"Good productivity" = "Good productivity";
+"Got quite a bit done" = "Got quite a bit done";
+"Fifty sessions! Efficiency beast" = "Fifty sessions! Efficiency beast";
+"50+!" = "50+!";
+"Super productive" = "Super productive";
+"Over 100! Not sleeping today?" = "Over 100! Not sleeping today?";
+"100+ sessions!" = "100+ sessions!";
+"Superhuman" = "Superhuman";
+
 /* HUD footer */
 "Settings" = "Settings";
 "Updates" = "Updates";

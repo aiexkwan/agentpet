@@ -91,9 +91,15 @@ final class PetCareController: ObservableObject {
 
     private func mutate(petID requested: String?, _ change: (inout PetCareState) -> Void) {
         guard let petID = resolvedFeedTarget(requested) else { return }
-        let levelBefore = PetCare.level(forXP: state(for: petID).xp)
-        var s = state(for: petID)
+        let stateBefore = state(for: petID)
+        let levelBefore = PetCare.level(forXP: stateBefore.xp)
+        let achievementsBefore = stateBefore.unlockedAchievements ?? []
+        var s = stateBefore
         change(&s)
+        // Reconcile achievements after every feed/meal/rollover: recordMeal and
+        // feedTokens mutate the stats but don't unlock badges themselves, so
+        // without this the unlock set stays empty forever (HUD showed 0/14).
+        PetCare.unlockNewAchievements(state: &s, now: Date())
         guard s != states[petID] else { return }
         states[petID] = s
         persist()
@@ -106,7 +112,30 @@ final class PetCareController: ObservableObject {
             )
             PetController.shared.flashLevelUp(line: line)
         }
+        let achievementsAfter = s.unlockedAchievements ?? []
+        let newAchievements = achievementsAfter.subtracting(achievementsBefore)
+        if newAchievements.count > 3 {
+            // Bulk backfill (first run after the feature shipped, or a veteran
+            // pet): one summary line instead of a burst of celebrate flashes.
+            let line = String(
+                format: NSLocalizedString("%d achievements unlocked! 🏆", comment: "bulk achievement unlock celebrate line"),
+                newAchievements.count
+            )
+            PetController.shared.flashCelebrate(line: line)
+        } else {
+            for achievement in newAchievements {
+                let name = PetCare.achievementDisplayName(achievement)
+                let line = String(
+                    format: NSLocalizedString("Achievement unlocked: %@ 🏆", comment: "achievement unlock celebrate line"),
+                    name
+                )
+                PetController.shared.flashCelebrate(line: line)
+            }
+        }
     }
+
+    /// All achievements unlocked by the currently selected pet.
+    var achievements: Set<Achievement> { current.unlockedAchievements ?? [] }
 
     private func persist() {
         if let data = try? JSONEncoder().encode(states) {

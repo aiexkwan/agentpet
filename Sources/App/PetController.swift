@@ -177,6 +177,22 @@ final class PetController: ObservableObject {
         syncWindows()
     }
 
+    /// Plays a short celebrate burst with a custom line (e.g. an achievement
+    /// unlock), then settles back to the aggregate mood. Sets `chatLine`
+    /// directly — `setMood` would re-roll it from the message pools.
+    func flashCelebrate(line: String) {
+        celebrateTimer?.invalidate()
+        chatLineCount = 0
+        activeAgentSessions = []
+        mood = .celebrate
+        chatLine = line
+        StatusBarController.shared.refreshTitle()
+        celebrateTimer = Timer.scheduledTimer(withTimeInterval: Self.celebrateDuration, repeats: false) { _ in
+            Task { @MainActor [weak self] in self?.settleAfterCelebrate() }
+        }
+        syncWindows()
+    }
+
     /// Plays a short level-up burst with a custom line, using the dedicated
     /// `.levelup` mood (a distinct clip from the done-celebrate), then settles
     /// back to the aggregate mood. Sets `chatLine` directly — `setMood` would
@@ -192,6 +208,12 @@ final class PetController: ObservableObject {
             Task { @MainActor [weak self] in self?.settleAfterCelebrate() }
         }
         syncWindows()
+    }
+
+    func flashReactiveLine(_ line: String) {
+        guard showChat else { return }
+        chatLine = line
+        StatusBarController.shared.refreshTitle()
     }
 
     private func setMood(_ newMood: PetMood) {

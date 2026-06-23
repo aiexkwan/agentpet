@@ -107,6 +107,34 @@ struct CareTabView: View {
                 LabeledContent("Total sessions", value: "\(care.current.totalMeals)")
             }
 
+            Section {
+                let unlocked = care.achievements
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 5), spacing: 14) {
+                    ForEach(Achievement.allCases, id: \.self) { a in
+                        let on = unlocked.contains(a)
+                        VStack(spacing: 4) {
+                            Image(systemName: PetCare.achievementSymbol(a))
+                                .font(.system(size: 18))
+                                .foregroundStyle(on ? stageColor : Color.secondary.opacity(0.4))
+                                .frame(height: 22)
+                            Text(PetCare.achievementDisplayName(a))
+                                .font(.system(size: 9))
+                                .multilineTextAlignment(.center)
+                                .foregroundStyle(on ? .primary : .secondary)
+                                .lineLimit(2)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .opacity(on ? 1 : 0.5)
+                        .help("\(PetCare.achievementDisplayName(a)) — \(PetCare.achievementDescription(a))")
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Text("Achievements")
+            } footer: {
+                Text(verbatim: "\(care.achievements.count) of \(Achievement.allCases.count) unlocked")
+            }
+
             if care.raisedPetIDs.count > 1 {
                 Section("All companions") {
                     ForEach(care.raisedPetIDs, id: \.self) { id in

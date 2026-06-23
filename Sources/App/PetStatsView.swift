@@ -14,6 +14,7 @@ struct PetStatsView: View {
     @ObservedObject private var usage = OpenUsageClient.shared
     @ObservedObject private var updater = UpdaterController.shared
     @State private var updateLabel: String?
+    @State private var hoveredAchievement: Achievement?
 
     private static let stageColors: [Color] = [.green, .teal, .blue, .purple, .orange]
 
@@ -39,6 +40,7 @@ struct PetStatsView: View {
         VStack(alignment: .leading, spacing: 12) {
             header(state)
             xpBlock(state)
+            achievementBlock
             statGrid(state)
             trendBlock(state)
             usageBlock
@@ -159,6 +161,71 @@ struct PetStatsView: View {
                         Self.tokenString(PetCare.tokensToNextLevel(state: state)), level + 1))
                 .font(.system(size: 10, weight: .medium)).foregroundStyle(stageColor.opacity(0.9))
         }
+    }
+
+    // MARK: - Achievements
+
+    private var achievementBlock: some View {
+        let unlocked = care.achievements
+        let total = Achievement.allCases.count
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack {
+                Text("Achievements")
+                    .font(.system(size: 9, weight: .semibold)).tracking(0.8)
+                    .foregroundStyle(.white.opacity(0.35))
+                Spacer()
+                Text(verbatim: "\(unlocked.count) / \(total)")
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(.white.opacity(0.55))
+            }
+            HStack(spacing: 2) {
+                ForEach(Achievement.allCases, id: \.self) { a in
+                    let symbol = PetCare.achievementSymbol(a)
+                    let isUnlocked = unlocked.contains(a)
+                    Image(systemName: symbol)
+                        .font(.system(size: 11))
+                        .foregroundStyle(isUnlocked ? stageColor : Color.white.opacity(0.15))
+                        // Distribute evenly across the card width so 14 badges
+                        // never overflow the fixed 300pt popover (the overflow
+                        // clipped the whole HUD's left edge).
+                        .frame(maxWidth: .infinity, minHeight: 20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(hoveredAchievement == a ? Color.white.opacity(0.08) : .clear)
+                        )
+                        .help(PetCare.achievementDisplayName(a))
+                        .onHover { inside in
+                            hoveredAchievement = inside ? a : (hoveredAchievement == a ? nil : hoveredAchievement)
+                        }
+                }
+            }
+            .frame(maxWidth: .infinity)
+            achievementHint(unlocked: unlocked)
+        }
+    }
+
+    /// A single line under the badge row: hovering a badge shows its name, how to
+    /// unlock it, and whether it's done. Reliable in the floating HUD where the
+    /// system `.help` tooltip can be slow or suppressed.
+    @ViewBuilder private func achievementHint(unlocked: Set<Achievement>) -> some View {
+        HStack(spacing: 5) {
+            if let a = hoveredAchievement {
+                let done = unlocked.contains(a)
+                Image(systemName: done ? "checkmark.circle.fill" : "lock.fill")
+                    .font(.system(size: 8))
+                    .foregroundStyle(done ? stageColor : .white.opacity(0.35))
+                Text(PetCare.achievementDisplayName(a))
+                    .font(.system(size: 9, weight: .semibold)).foregroundStyle(.white.opacity(0.8))
+                Text(verbatim: "·").font(.system(size: 9)).foregroundStyle(.white.opacity(0.3))
+                Text(PetCare.achievementDescription(a))
+                    .font(.system(size: 9)).foregroundStyle(.white.opacity(0.5))
+                    .lineLimit(1)
+            } else {
+                Text("Hover a badge to see how to unlock it")
+                    .font(.system(size: 9)).foregroundStyle(.white.opacity(0.3))
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(height: 12)
     }
 
     // MARK: - Stat grid

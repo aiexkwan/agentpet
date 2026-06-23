@@ -370,6 +370,73 @@
 "Opens buymeacoffee.com in your browser." = "在瀏覽器開啟 buymeacoffee.com。";
 "Quét bằng app ngân hàng bất kỳ (VPBank · NGUYEN THANH DAT)" = "用任意銀行 App 掃碼（VPBank · NGUYEN THANH DAT）";
 
+/* Reactive bubbles — settings */
+"Pet reactive bubbles" = "寵物反應氣泡";
+"Pet reacts to rate limits, token usage, hunger, and streaks." = "寵物會對速率限制、token 用量、飢餓度和連續天數作出反應。";
+
+/* Reactive bubbles — rate limit */
+"Usage is climbing~" = "用量開始升喇～";
+"Take it easy, no rush" = "慢慢嚟，唔急";
+"Keep an eye on quota" = "留意下 quota";
+"Rate limit running low…" = "Rate limit 快見底…";
+"Use sparingly!" = "要慳住用喇！";
+"Quota getting thin" = "Quota 唔多喇";
+"Almost out of quota 😰" = "差唔多冇 quota 喇 😰";
+"Maybe take a break…" = "停一停吖…";
+"Quota nearly spent" = "Quota 幾乎用完";
+
+/* Reactive bubbles — daily tokens */
+"Burned quite a few tokens today~" = "今日燒咗唔少 token～";
+"Eaten a lot of tokens" = "食咗好多 token 喇";
+"Token usage rising" = "Token 消耗上升中";
+"Big appetite mode!" = "大胃王模式！";
+"Great appetite today~" = "今日胃口好好～";
+"Tokens going fast" = "Token 食得好快";
+"Token usage off the charts today 🔥" = "今日 token 用量爆炸 🔥";
+"Token burn is extreme!" = "Token 消耗超高！";
+"Heavy burn today" = "今日 burn 好勁";
+
+/* Reactive bubbles — session count */
+"5 agents running at once~" = "5 個 agent 齊開～";
+"Lots of agents at work" = "好多 agent 喺度做嘢";
+"Parallelism is up" = "並行度唔低";
+"Command center mode 😳" = "指揮中心模式 😳";
+"So many sessions!" = "咁多 session！";
+"Full throttle" = "全力運作中";
+
+/* Reactive bubbles — hunger */
+"A little hungry…" = "有少少肚餓…";
+"Hmm… want food" = "嗯…想食嘢";
+"Tummy rumbling" = "肚子打鼓";
+"Haven't been fed in a while 😢" = "好耐冇餵我喇 😢";
+"Hungry…" = "肚餓…";
+"Want food…" = "想食嘢…";
+"Where did you go… 😭" = "你去咗邊… 😭";
+"About to faint from hunger" = "快要餓暈喇";
+"So hungry" = "好肚餓啊";
+
+/* Reactive bubbles — streak */
+"Days in a row! Keep going" = "連續幾日！繼續加油";
+"Going strong~" = "連續好幾日～";
+"Keeping it up" = "堅持緊";
+"A whole week straight!" = "成個禮拜冇斷過！";
+"Such persistence~" = "好有毅力～";
+"So consistent" = "太穩定喇";
+"Legendary streak!" = "傳說級連續！";
+"Incredible!" = "太強喇！";
+"Unstoppable" = "無人能擋";
+
+/* Reactive bubbles — daily meals */
+"Lots of sessions today~" = "今日完成好多 session～";
+"Good productivity" = "效率唔錯";
+"Got quite a bit done" = "做咗唔少嘢";
+"Fifty sessions! Efficiency beast" = "半百 session！效率怪物";
+"50+!" = "50+！";
+"Super productive" = "超高產";
+"Over 100! Not sleeping today?" = "破百！你今日唔駛瞓？";
+"100+ sessions!" = "100+ session！";
+"Superhuman" = "超人嚟嘅";
+
 /* HUD footer */
 "Settings" = "設定";
 "Updates" = "更新";

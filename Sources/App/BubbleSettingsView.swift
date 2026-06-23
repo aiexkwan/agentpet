@@ -47,6 +47,15 @@ struct BubbleSettingsView: View {
                 Spacer()
                 ColorSwitch(isOn: $settings.multiAgentBubbleEnabled)
             }
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Pet reactive bubbles")
+                    Text("Pet reacts to rate limits, token usage, hunger, and streaks.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                ColorSwitch(isOn: $settings.reactiveBubblesEnabled)
+            }
         } header: {
             Text("Bubble mode")
         }
