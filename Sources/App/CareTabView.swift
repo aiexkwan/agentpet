@@ -107,6 +107,22 @@ struct CareTabView: View {
                 LabeledContent("Total sessions", value: "\(care.current.totalMeals)")
             }
 
+            Section {
+                let unlocked = care.achievements
+                if unlocked.isEmpty {
+                    Text("No achievements unlocked yet.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(Array(unlocked).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { a in
+                        Text(PetCare.achievementDisplayName(a))
+                    }
+                }
+            } header: {
+                Text("Achievements")
+            } footer: {
+                Text(verbatim: "\(care.achievements.count) of \(Achievement.allCases.count) unlocked")
+            }
+
             if care.raisedPetIDs.count > 1 {
                 Section("All companions") {
                     ForEach(care.raisedPetIDs, id: \.self) { id in

@@ -1,5 +1,23 @@
 import Foundation
 
+/// Achievements the pet can unlock over its lifetime.
+public enum Achievement: String, Codable, CaseIterable, Sendable {
+    case firstMeal
+    case sessions100
+    case sessions500
+    case tokens1M
+    case tokens10M
+    case tokens50M
+    case level5
+    case level10
+    case level20
+    case level35
+    case streak7
+    case streak14
+    case streak30
+    case nightOwl
+}
+
 /// How hungry the pet is, derived from the time since its last feeding.
 public enum PetHunger: String, Codable, CaseIterable, Sendable {
     case full
@@ -36,6 +54,7 @@ public struct PetCareState: Codable, Equatable, Sendable {
     /// to draw the weekly trend. Optional so states saved before this field
     /// existed still decode.
     public var days: [String: Int]?
+    public var unlockedAchievements: Set<Achievement>?
 
     public init() {
         xp = 0
@@ -226,6 +245,65 @@ public enum PetCare {
     public static func dayKey(for date: Date, calendar: Calendar = .current) -> String {
         let c = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+    }
+
+    // MARK: - Achievements
+
+    public static func checkAchievements(state: PetCareState, hour: Int) -> Set<Achievement> {
+        let dl = displayLevel(forXP: state.xp)
+
+        let mealThresholds: [(Int, Achievement)] = [
+            (1, .firstMeal), (100, .sessions100), (500, .sessions500),
+        ]
+        let tokenThresholds: [(Int, Achievement)] = [
+            (1_000_000, .tokens1M), (10_000_000, .tokens10M), (50_000_000, .tokens50M),
+        ]
+        let levelThresholds: [(Int, Achievement)] = [
+            (5, .level5), (10, .level10), (20, .level20), (35, .level35),
+        ]
+        let streakThresholds: [(Int, Achievement)] = [
+            (7, .streak7), (14, .streak14), (30, .streak30),
+        ]
+
+        var result = Set<Achievement>()
+        for (threshold, badge) in mealThresholds   where state.totalMeals  >= threshold { result.insert(badge) }
+        for (threshold, badge) in tokenThresholds  where state.totalTokens >= threshold { result.insert(badge) }
+        for (threshold, badge) in levelThresholds  where dl                >= threshold { result.insert(badge) }
+        for (threshold, badge) in streakThresholds where state.streakDays  >= threshold { result.insert(badge) }
+        if hour < 6, state.totalMeals >= 1 { result.insert(.nightOwl) }
+        return result
+    }
+
+    @discardableResult
+    public static func unlockNewAchievements(
+        state: inout PetCareState, now: Date, calendar: Calendar = .current
+    ) -> Set<Achievement> {
+        let hour = calendar.component(.hour, from: now)
+        let qualified = checkAchievements(state: state, hour: hour)
+        let already = state.unlockedAchievements ?? []
+        let newly = qualified.subtracting(already)
+        state.unlockedAchievements = already.union(newly)
+        return newly
+    }
+
+    /// Human-readable display name for an achievement, localised.
+    public static func achievementDisplayName(_ a: Achievement) -> String {
+        switch a {
+        case .firstMeal:   return NSLocalizedString("First Meal", comment: "achievement name")
+        case .sessions100: return NSLocalizedString("100 Sessions", comment: "achievement name")
+        case .sessions500: return NSLocalizedString("500 Sessions", comment: "achievement name")
+        case .tokens1M:    return NSLocalizedString("1M Tokens", comment: "achievement name")
+        case .tokens10M:   return NSLocalizedString("10M Tokens", comment: "achievement name")
+        case .tokens50M:   return NSLocalizedString("50M Tokens", comment: "achievement name")
+        case .level5:      return NSLocalizedString("Level 5", comment: "achievement name")
+        case .level10:     return NSLocalizedString("Level 10", comment: "achievement name")
+        case .level20:     return NSLocalizedString("Level 20", comment: "achievement name")
+        case .level35:     return NSLocalizedString("Level 35", comment: "achievement name")
+        case .streak7:     return NSLocalizedString("7-Day Streak", comment: "achievement name")
+        case .streak14:    return NSLocalizedString("14-Day Streak", comment: "achievement name")
+        case .streak30:    return NSLocalizedString("30-Day Streak", comment: "achievement name")
+        case .nightOwl:    return NSLocalizedString("Night Owl", comment: "achievement name")
+        }
     }
 
     private static func markFed(_ state: inout PetCareState, now: Date, calendar: Calendar) {
