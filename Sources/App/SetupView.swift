@@ -244,6 +244,7 @@ private struct GeneralTab: View {
     @ObservedObject var pet: PetController
     @ObservedObject private var sound = SoundSettings.shared
     @ObservedObject private var appLang = AppLanguage.shared
+    @ObservedObject private var breaks = BreakReminderSettings.shared
     // Local mirror of the system login-item state so the toggle re-renders
     // reliably (the SMAppService status isn't observable on its own).
     @State private var launchAtLogin = LoginItem.isEnabled
@@ -275,6 +276,65 @@ private struct GeneralTab: View {
                             launchAtLogin = LoginItem.isEnabled
                         }))
 }
+            }
+
+            Section("Pet display") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Split pet")
+                        Text("Spawn one pet per active project instead of one shared pet.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    ColorSwitch(isOn: $pet.splitPet)
+                }
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Animate pets")
+                        Text("Turn off to freeze pet/bubble animation (lower CPU).")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    ColorSwitch(isOn: $pet.animationsEnabled)
+                }
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Animation speed")
+                        Text("Sprite frame rate. Idle is always capped at 2 fps.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 8) {
+                        Slider(value: $pet.animationFPS, in: 1...12, step: 1)
+                            .frame(width: 120)
+                        Text("\(Int(pet.animationFPS)) fps")
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                    }
+                }
+                .disabled(!pet.animationsEnabled)
+                .opacity(pet.animationsEnabled ? 1 : 0.5)
+            }
+
+            Section("Break reminder") {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Remind me to take breaks")
+                        Text("The home pet nudges you to rest after a work stretch.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    ColorSwitch(isOn: $breaks.enabled)
+                }
+                Stepper("Work for: \(breaks.workIntervalMinutes) min",
+                        value: $breaks.workIntervalMinutes, in: 15...240, step: 15)
+                    .disabled(!breaks.enabled)
+                    .opacity(breaks.enabled ? 1 : 0.5)
+                Stepper("Break length: \(breaks.breakLengthMinutes) min",
+                        value: $breaks.breakLengthMinutes, in: 1...30, step: 1)
+                    .disabled(!breaks.enabled)
+                    .opacity(breaks.enabled ? 1 : 0.5)
             }
 
             Section("Notifications") {
@@ -406,6 +466,9 @@ private struct PetTab: View {
     @State private var creating = false
     @State private var petQuery = ""
 
+    enum PetSubTab { case `default`, project }
+    @State private var petSubTab: PetSubTab = .default
+
     private var filteredPacks: [ImagePetPack] {
         guard !petQuery.isEmpty else { return imagePets.packs }
         let q = petQuery.lowercased()
@@ -413,6 +476,44 @@ private struct PetTab: View {
     }
 
     var body: some View {
+        VStack(spacing: 0) {
+            Picker("", selection: $petSubTab) {
+                Text("Default pet").tag(PetSubTab.default)
+                Text("Project pets").tag(PetSubTab.project)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+
+            Divider()
+
+            Group {
+                if petSubTab == .default {
+                    defaultContent
+                } else {
+                    ProjectPetsView()
+                }
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .sheet(isPresented: $browsing) {
+            BrowsePetsView(onClose: { browsing = false })
+        }
+        .sheet(isPresented: $creating) {
+            CreatePetView(
+                onCreate: { id in
+                    creating = false
+                    imagePets.reload()
+                    pet.selectedPetID = id
+                },
+                onCancel: { creating = false }
+            )
+        }
+    }
+
+    private var defaultContent: some View {
         Form {
             Section {
                 HStack(spacing: 14) {
@@ -484,24 +585,12 @@ private struct PetTab: View {
             }
         }
         .formStyle(.grouped)
-        .sheet(isPresented: $browsing) {
-            BrowsePetsView(onClose: { browsing = false })
-        }
-        .sheet(isPresented: $creating) {
-            CreatePetView(
-                onCreate: { id in
-                    creating = false
-                    imagePets.reload()
-                    pet.selectedPetID = id
-                },
-                onCancel: { creating = false }
-            )
-        }
     }
 
     @ViewBuilder private var petPreview: some View {
         if let pack = selectedPack {
-            ImageSpriteView(frames: pack.clip(0), mood: .idle, size: 78)
+            ImageSpriteView(frames: pack.clip(0), mood: .idle,
+                            fps: pet.spriteFPS(forMood: .idle), size: 78)
         } else {
             Image(systemName: "pawprint.fill").font(.system(size: 40)).foregroundStyle(.secondary)
         }
@@ -647,10 +736,11 @@ private struct PetThumb: View {
 private struct AnimationPicker: View {
     let pack: ImagePetPack
     @ObservedObject private var store = PetBindingsStore.shared
+    @ObservedObject private var pet = PetController.shared
     @State private var state: PetMood = .working
     @State private var hoveredClip: Int?
 
-    private let states: [PetMood] = [.idle, .working, .waiting, .done, .celebrate]
+    private let states: [PetMood] = [.idle, .working, .waiting, .done, .celebrate, .sleepy, .levelup]
 
     var body: some View {
         Picker("State", selection: $state) {
@@ -671,7 +761,8 @@ private struct AnimationPicker: View {
                     VStack(spacing: 3) {
                         Group {
                             if hoveredClip == i {
-                                ImageSpriteView(frames: pack.clip(i), mood: .working, size: 44)
+                                ImageSpriteView(frames: pack.clip(i), mood: .working,
+                                                fps: pet.spriteFPS(forMood: .working), size: 44)
                             } else {
                                 StaticFrame(image: pack.clip(i).first, size: 44)
                             }
@@ -699,6 +790,8 @@ private struct AnimationPicker: View {
         case .waiting: return NSLocalizedString("Waiting", comment: "pet mood")
         case .done: return NSLocalizedString("Done", comment: "pet mood")
         case .celebrate: return NSLocalizedString("Celebrate", comment: "pet mood")
+        case .sleepy: return NSLocalizedString("Sleepy", comment: "pet mood")
+        case .levelup: return NSLocalizedString("Level up", comment: "pet mood")
         }
     }
 }

@@ -35,6 +35,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         OpenUsageClient.shared.start()
         NativeUsageProbe.shared.start()
         CareSyncController.shared.start()
+        BreakReminderController.shared.start()
         SettingsModel.shared.migrateInstalledHooksIfNeeded()
         SettingsModel.shared.repairStaleHookPathsIfNeeded()
         updater = UpdaterController.shared

@@ -78,6 +78,15 @@ final class AppDaemon: ObservableObject {
         refresh()
     }
 
+    /// Resolves which pet should receive XP for a given project path.
+    /// Split ON  → the project's configured pet (or the selected pet if unconfigured).
+    /// Split OFF → always the selected pet (identical to today's behaviour).
+    func careTarget(forProject project: String?) -> String? {
+        guard PetController.shared.splitPet else { return PetController.shared.selectedPetID }
+        return ProjectPetSettings.shared.petID(forProject: project)
+            ?? PetController.shared.selectedPetID
+    }
+
     /// Tokens appear in the transcript while Claude is still working, so the
     /// pet eats live on tool events instead of waiting for `Stop`. Throttled
     /// per session; reads are incremental (offset-based), so the `Stop` path
@@ -94,10 +103,16 @@ final class AppDaemon: ObservableObject {
         if let last = lastLiveFeed[event.sessionId],
            now.timeIntervalSince(last) < Self.liveFeedInterval { return }
         lastLiveFeed[event.sessionId] = now
+        // Capture the project string (Sendable) before crossing the actor boundary;
+        // resolve careTarget on the main actor inside the awaited block.
+        let project = event.project
         Task.detached(priority: .utility) {
             let tokens = TranscriptReader.newUsageTokens(at: path) ?? 0
             guard tokens > 0 else { return }
-            await MainActor.run { PetCareController.shared.feedTokens(tokens) }
+            await MainActor.run {
+                PetCareController.shared.feedTokens(tokens,
+                    petID: AppDaemon.shared.careTarget(forProject: project))
+            }
         }
     }
 
@@ -113,6 +128,8 @@ final class AppDaemon: ObservableObject {
             notifyIfNeeded(before: before, session: session)
             return
         }
+        // Capture the project string (Sendable) before crossing the actor boundary.
+        let project = session.project
         Task.detached(priority: .utility) { [weak self] in
             let isQuestion = TranscriptReader.latestAssistantText(at: path)
                 .map(QuestionDetector.looksLikeQuestion) ?? false
@@ -120,7 +137,8 @@ final class AppDaemon: ObservableObject {
             let tokens = TranscriptReader.newUsageTokens(at: path) ?? 0
             await MainActor.run { [weak self] in
                 guard let self else { return }
-                PetCareController.shared.feedTokens(tokens)
+                PetCareController.shared.feedTokens(tokens,
+                    petID: self.careTarget(forProject: project))
                 if isQuestion {
                     self.store.refineState(id: sessionId, from: .done, to: .waiting, since: stateSince)
                 }
@@ -132,6 +150,10 @@ final class AppDaemon: ObservableObject {
     }
 
     private func resolveTitle(for event: AgentEvent) {
+        // A title, once resolved, is stable — stop re-reading the transcript
+        // head on every subsequent event. Without this the transcript was
+        // re-read and re-parsed on every hook event of a session.
+        guard store.session(id: event.sessionId)?.title == nil else { return }
         let sessionId = event.sessionId
         let path: String? = event.transcriptPath
             ?? event.project.map { TranscriptReader.inferredPath(sessionId: sessionId, cwd: $0) }
@@ -148,8 +170,15 @@ final class AppDaemon: ObservableObject {
     /// Reads the transcript off-thread for the model of the latest assistant
     /// message — picks up `/model` switches mid-session, which Claude's hook
     /// payloads only report at `SessionStart`.
+    /// Reading the transcript tail to detect a `/model` switch is the heaviest
+    /// per-event work (128 KB read + JSON parse per line). The model rarely
+    /// changes mid-session and its initial value already comes from the hook
+    /// payload, so throttle this hard rather than running it on every event.
+    private let modelResolveThrottle = PerKeyThrottle(interval: 30)
+
     private func resolveModel(for event: AgentEvent) {
         guard event.agentKind == .claude else { return }
+        guard modelResolveThrottle.shouldRun(event.sessionId, now: Date()) else { return }
         let sessionId = event.sessionId
         let path: String? = event.transcriptPath
             ?? event.project.map { TranscriptReader.inferredPath(sessionId: sessionId, cwd: $0) }
@@ -175,7 +204,7 @@ final class AppDaemon: ObservableObject {
             NotificationManager.shared.notify(
                 title: "\(project) finished", body: "Agent completed its turn")
             SoundSettings.shared.play(.done)
-            PetCareController.shared.recordMeal()
+            PetCareController.shared.recordMeal(petID: careTarget(forProject: session.project))
         default:
             break
         }

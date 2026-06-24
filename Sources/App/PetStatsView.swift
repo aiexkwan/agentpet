@@ -5,6 +5,9 @@ import AgentPetCore
 /// The pet's right-click HUD: the companion's stats plus a compact footer with
 /// Settings / Updates / Quit (the same actions as the menu bar popover).
 struct PetStatsView: View {
+    /// The pet whose stats to show. `nil` resolves to the globally selected pet
+    /// (preserves today's right-click-on-the-single-pet behaviour).
+    var petID: String? = nil
     @ObservedObject private var care = PetCareController.shared
     @ObservedObject private var pet = PetController.shared
     @ObservedObject private var imagePets = ImagePetStore.shared
@@ -15,14 +18,25 @@ struct PetStatsView: View {
 
     private static let stageColors: [Color] = [.green, .teal, .blue, .purple, .orange]
 
+    /// The pet id this card is showing — the passed id, else the selected pet.
+    private var resolvedPetID: String? { petID ?? pet.selectedPetID }
+
     private var pack: ImagePetPack? {
-        pet.selectedPetID.flatMap { imagePets.pack(id: $0) }
+        resolvedPetID.flatMap { imagePets.pack(id: $0) }
     }
 
-    private var stageColor: Color { Self.stageColors[min(care.stageIndex, Self.stageColors.count - 1)] }
+    /// Care state of the resolved pet.
+    private var careState: PetCareState { care.state(for: resolvedPetID) }
+    private var level: Int { PetCare.displayLevel(forXP: careState.xp) }
+    private var stageKey: String { PetCare.stageName(forLevel: PetCare.level(forXP: careState.xp)) }
+    private var stageIndex: Int { PetCare.stageIndex(forLevel: PetCare.level(forXP: careState.xp)) }
+    private var levelProgress: Double { PetCare.progress(forXP: careState.xp) }
+    private var hunger: PetHunger { PetCare.hunger(state: careState, now: Date()) }
+
+    private var stageColor: Color { Self.stageColors[min(stageIndex, Self.stageColors.count - 1)] }
 
     var body: some View {
-        let state = care.current
+        let state = careState
         VStack(alignment: .leading, spacing: 12) {
             header(state)
             xpBlock(state)
@@ -108,10 +122,10 @@ struct PetStatsView: View {
                 Text(pack?.displayName ?? NSLocalizedString("Your pet", comment: ""))
                     .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
                 HStack(spacing: 6) {
-                    Text(verbatim: "Lv \(care.level)")
+                    Text(verbatim: "Lv \(level)")
                         .font(.system(size: 12, weight: .bold)).foregroundStyle(stageColor)
-                    StageBadge(stageIndex: care.stageIndex, size: 16)
-                    Text(NSLocalizedString(care.stageKey, comment: "stage"))
+                    StageBadge(stageIndex: stageIndex, size: 16)
+                    Text(NSLocalizedString(stageKey, comment: "stage"))
                         .font(.system(size: 10, weight: .semibold))
                         .padding(.horizontal, 6).padding(.vertical, 2)
                         .background(Capsule().fill(stageColor.opacity(0.2)))
@@ -135,16 +149,16 @@ struct PetStatsView: View {
     private func xpBlock(_ state: PetCareState) -> some View {
         let (inLevel, span) = PetCare.xpWithinLevel(forXP: state.xp)
         return VStack(alignment: .leading, spacing: 4) {
-            ProgressView(value: care.levelProgress).tint(stageColor).controlSize(.small)
+            ProgressView(value: levelProgress).tint(stageColor).controlSize(.small)
             HStack {
                 Text(verbatim: "\(Self.plain(inLevel)) / \(Self.plain(span)) XP")
                     .font(.system(size: 10)).foregroundStyle(.white.opacity(0.45))
                 Spacer()
-                Text(verbatim: "\(Int((care.levelProgress * 100).rounded()))%")
+                Text(verbatim: "\(Int((levelProgress * 100).rounded()))%")
                     .font(.system(size: 10, weight: .semibold)).foregroundStyle(stageColor)
             }
             Text(String(format: NSLocalizedString("≈ %@ tokens to Lv %d", comment: ""),
-                        Self.tokenString(PetCare.tokensToNextLevel(state: state)), care.level + 1))
+                        Self.tokenString(PetCare.tokensToNextLevel(state: state)), level + 1))
                 .font(.system(size: 10, weight: .medium)).foregroundStyle(stageColor.opacity(0.9))
         }
     }
@@ -332,7 +346,7 @@ struct PetStatsView: View {
 
     /// Continuous fullness 0…1 (48h since the last feeding → empty).
     private var fullness: Double {
-        guard let last = care.current.lastFedAt else { return 0.5 }
+        guard let last = careState.lastFedAt else { return 0.5 }
         let hours = Date().timeIntervalSince(last) / 3600
         return max(0, min(1, 1 - hours / 48))
     }
@@ -348,7 +362,7 @@ struct PetStatsView: View {
     }
 
     private var hungerText: String {
-        switch care.hunger {
+        switch hunger {
         case .full: return NSLocalizedString("Full", comment: "hunger")
         case .satisfied: return NSLocalizedString("Satisfied", comment: "hunger")
         case .peckish: return NSLocalizedString("Peckish", comment: "hunger")

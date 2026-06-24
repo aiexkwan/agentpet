@@ -68,11 +68,49 @@ public final class EventSocketServer: @unchecked Sendable {
         unlink(path)
     }
 
+    /// What the accept loop should do after `accept()` returns an error.
+    enum AcceptErrorAction: Equatable {
+        /// Transient, expected error (interrupted syscall, client aborted) —
+        /// loop again right away.
+        case retryImmediately
+        /// Recoverable resource pressure (fd exhaustion) or an unknown error —
+        /// sleep briefly before retrying so a *persistent* error can't spin a
+        /// CPU core at 100%.
+        case backoff
+        /// The listen socket itself is gone (closed/invalid) — retrying can
+        /// only ever fail again, so stop the loop instead of spinning.
+        case stop
+    }
+
+    /// Classifies an `accept()` errno. The default is `.backoff`, never
+    /// `.retryImmediately`: an unrecognised error must not fall through to a
+    /// tight, CPU-pegging retry loop.
+    static func acceptErrorAction(errno code: Int32) -> AcceptErrorAction {
+        switch code {
+        case EINTR, ECONNABORTED:
+            return .retryImmediately
+        case EBADF, EINVAL, ENOTSOCK:
+            return .stop
+        default:
+            return .backoff
+        }
+    }
+
     private func acceptLoop(onEvent: @escaping @Sendable (AgentEvent) -> Void) {
         while running {
             let client = accept(listenFD, nil, nil)
             if client < 0 {
-                if running { continue } else { break }
+                let err = errno
+                guard running else { break }
+                switch Self.acceptErrorAction(errno: err) {
+                case .retryImmediately:
+                    continue
+                case .backoff:
+                    usleep(50_000)   // 50ms — cap a persistent error at ~20 retries/sec
+                    continue
+                case .stop:
+                    return
+                }
             }
             handleClient(client, onEvent: onEvent)
         }

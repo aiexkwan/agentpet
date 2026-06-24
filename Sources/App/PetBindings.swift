@@ -11,7 +11,7 @@ struct PetBindings: Equatable {
 
     /// Spreads the first clips across states, clamped to what the pack has.
     static func defaults(clipCount: Int) -> PetBindings {
-        let order: [PetMood] = [.idle, .working, .waiting, .done, .celebrate]
+        let order: [PetMood] = [.idle, .working, .waiting, .done, .celebrate, .sleepy, .levelup]
         var map: [String: Int] = [:]
         for (i, mood) in order.enumerated() {
             map[mood.rawValue] = clipCount > 0 ? min(i, clipCount - 1) : 0

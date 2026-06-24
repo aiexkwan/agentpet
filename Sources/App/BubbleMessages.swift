@@ -49,6 +49,8 @@ final class BubbleMessages: ObservableObject {
         case .celebrate: base = PetChat.lines[.celebrate] ?? []
         case .idle:      base = IdleBoost.lines
         case .working:   base = []
+        case .sleepy:    base = IdleBoost.lines
+        case .levelup:   base = PetChat.lines[.celebrate] ?? []
         }
         return base.map { NSLocalizedString($0, comment: "bubble message") }
     }

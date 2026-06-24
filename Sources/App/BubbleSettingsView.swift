@@ -212,6 +212,8 @@ struct BubbleSettingsView: View {
         case .done:      return NSLocalizedString("Done", comment: "pet mood")
         case .celebrate: return NSLocalizedString("Celebrate", comment: "pet mood")
         case .idle:      return NSLocalizedString("Idle", comment: "pet mood")
+        case .sleepy:    return NSLocalizedString("Sleepy", comment: "pet mood")
+        case .levelup:   return NSLocalizedString("Level up", comment: "pet mood")
         }
     }
 

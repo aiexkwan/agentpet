@@ -8,6 +8,10 @@ public enum PetMood: String, Codable, Sendable, CaseIterable {
     case waiting
     case done
     case celebrate
+    /// Resting during a break reminder (app-layer override, not a session state).
+    case sleepy
+    /// Transient burst when the pet levels up (app-layer transient, like celebrate).
+    case levelup
 }
 
 /// Reduces all sessions to a single mood by attention priority.

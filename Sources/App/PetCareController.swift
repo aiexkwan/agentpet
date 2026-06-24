@@ -61,27 +61,36 @@ final class PetCareController: ObservableObject {
         }
     }
 
-    // MARK: - Feeding (always the selected pet)
+    // MARK: - Feeding
 
     /// A finished agent session — the pet's proper meal.
-    func recordMeal() {
-        mutateCurrent { PetCare.recordMeal(state: &$0, now: Date()) }
+    /// Pass `petID` to feed a specific pet (Split ON); `nil` feeds the selected pet (back-compat).
+    func recordMeal(petID: String? = nil) {
+        mutate(petID: petID) { PetCare.recordMeal(state: &$0, now: Date()) }
     }
 
     /// Tokens consumed by a Claude turn (transcript usage delta).
-    func feedTokens(_ tokens: Int) {
+    /// Pass `petID` to feed a specific pet (Split ON); `nil` feeds the selected pet (back-compat).
+    func feedTokens(_ tokens: Int, petID: String? = nil) {
         guard tokens > 0 else { return }
-        mutateCurrent { PetCare.feedTokens(tokens, state: &$0, now: Date()) }
+        mutate(petID: petID) { PetCare.feedTokens(tokens, state: &$0, now: Date()) }
     }
 
     /// Rolls the daily counters over; UI refresh timers call this so "today"
     /// numbers reset at midnight even with no feeding events.
     func refreshDay() {
-        mutateCurrent { PetCare.rollover(&$0, now: Date()) }
+        mutate(petID: nil) { PetCare.rollover(&$0, now: Date()) }
     }
 
-    private func mutateCurrent(_ change: (inout PetCareState) -> Void) {
-        guard let petID = currentPetID else { return }
+    /// Resolves which pet receives a feed: `requested` if it is an installed
+    /// pack, otherwise falls back to `selectedPetID`.
+    private func resolvedFeedTarget(_ requested: String?) -> String? {
+        if let id = requested, ImagePetStore.shared.pack(id: id) != nil { return id }
+        return currentPetID
+    }
+
+    private func mutate(petID requested: String?, _ change: (inout PetCareState) -> Void) {
+        guard let petID = resolvedFeedTarget(requested) else { return }
         let stateBefore = state(for: petID)
         let levelBefore = PetCare.level(forXP: stateBefore.xp)
         let achievementsBefore = stateBefore.unlockedAchievements ?? []
@@ -101,7 +110,7 @@ final class PetCareController: ObservableObject {
                 format: NSLocalizedString("Level up! Lv %d ⭐", comment: "pet level-up celebrate line"),
                 levelAfter
             )
-            PetController.shared.flashCelebrate(line: line)
+            PetController.shared.flashLevelUp(line: line)
         }
         let achievementsAfter = s.unlockedAchievements ?? []
         let newAchievements = achievementsAfter.subtracting(achievementsBefore)
