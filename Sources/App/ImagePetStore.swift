@@ -8,12 +8,36 @@ final class ImagePetStore: ObservableObject {
 
     @Published private(set) var packs: [ImagePetPack] = []
 
+    /// User-chosen names per pet id, overriding the pack's catalog name (#31).
+    @Published private(set) var nameOverrides: [String: String] =
+        (UserDefaults.standard.dictionary(forKey: "agentpet.petNames") as? [String: String]) ?? [:]
+
     private var petsDir: URL {
         URL(fileURLWithPath: AgentPetPaths.baseDir).appendingPathComponent("pets")
     }
 
     func pack(id: String) -> ImagePetPack? {
         packs.first { $0.id == id }
+    }
+
+    /// The name to show for a pet: the user's custom name, else the pack's
+    /// catalog name, else the id. One place so every surface agrees.
+    func displayName(for id: String?) -> String {
+        guard let id else { return NSLocalizedString("Your pet", comment: "") }
+        if let custom = nameOverrides[id], !custom.isEmpty { return custom }
+        return pack(id: id)?.displayName ?? id
+    }
+
+    /// Renames a pet (empty/blank clears the override back to the catalog name).
+    func rename(_ id: String, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == pack(id: id)?.displayName {
+            nameOverrides.removeValue(forKey: id)
+        } else {
+            nameOverrides[id] = String(trimmed.prefix(40))
+        }
+        UserDefaults.standard.set(nameOverrides, forKey: "agentpet.petNames")
+        CareSyncController.shared.scheduleSync()   // push the new name to the web
     }
 
     /// Deletes an installed pet's folder from disk. Drops it from the in-memory

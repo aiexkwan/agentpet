@@ -92,24 +92,57 @@ final class AppDaemon: ObservableObject {
     /// per session; reads are incremental (offset-based), so the `Stop` path
     /// picking up the remainder never double-counts.
     private var lastLiveFeed: [String: Date] = [:]
+    private var codexPathBySession: [String: String] = [:]
     private static let liveFeedInterval: TimeInterval = 10
 
     private func feedLiveTokens(for event: AgentEvent) {
-        guard event.agentKind == .claude, event.eventName != "Stop" else { return }
-        let path: String? = event.transcriptPath
-            ?? event.project.map { TranscriptReader.inferredPath(sessionId: event.sessionId, cwd: $0) }
-        guard let path else { return }
+        switch event.agentKind {
+        case .claude:
+            // Claude's Stop is handled by refineDoneIfQuestion (it feeds the remainder).
+            guard event.eventName != "Stop" else { return }
+            let path: String? = event.transcriptPath
+                ?? event.project.map { TranscriptReader.inferredPath(sessionId: event.sessionId, cwd: $0) }
+            guard let path else { return }
+            let now = Date()
+            if let last = lastLiveFeed[event.sessionId],
+               now.timeIntervalSince(last) < Self.liveFeedInterval { return }
+            lastLiveFeed[event.sessionId] = now
+            let project = event.project
+            Task.detached(priority: .utility) {
+                let tokens = TranscriptReader.newUsageTokens(at: path) ?? 0
+                guard tokens > 0 else { return }
+                await MainActor.run {
+                    PetCareController.shared.feedTokens(tokens,
+                        petID: AppDaemon.shared.careTarget(forProject: project))
+                }
+            }
+        case .codex:
+            feedCodexTokens(for: event)
+        default:
+            return
+        }
+    }
+
+    /// Codex has no Claude-style transcript; it writes a rollout JSONL under
+    /// ~/.codex/sessions with per-turn token counts. Feed those so Codex earns
+    /// token-based XP like Claude (#29). Feeds live on tool events and once more
+    /// on Stop to catch the final turn; reads are incremental so no double-count.
+    private func feedCodexTokens(for event: AgentEvent) {
+        let isStop = event.eventName == "Stop"
         let now = Date()
-        if let last = lastLiveFeed[event.sessionId],
+        if !isStop, let last = lastLiveFeed[event.sessionId],
            now.timeIntervalSince(last) < Self.liveFeedInterval { return }
         lastLiveFeed[event.sessionId] = now
-        // Capture the project string (Sendable) before crossing the actor boundary;
-        // resolve careTarget on the main actor inside the awaited block.
+        let sid = event.sessionId
         let project = event.project
+        let cachedPath = codexPathBySession[sid]
         Task.detached(priority: .utility) {
-            let tokens = TranscriptReader.newUsageTokens(at: path) ?? 0
-            guard tokens > 0 else { return }
+            guard let path = cachedPath
+                ?? TranscriptReader.codexRolloutPath(sessionId: sid, cwd: project) else { return }
+            let tokens = TranscriptReader.newCodexUsageTokens(at: path) ?? 0
             await MainActor.run {
+                AppDaemon.shared.codexPathBySession[sid] = path
+                guard tokens > 0 else { return }
                 PetCareController.shared.feedTokens(tokens,
                     petID: AppDaemon.shared.careTarget(forProject: project))
             }

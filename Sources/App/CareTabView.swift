@@ -24,7 +24,7 @@ struct CareTabView: View {
     }
 
     private var currentName: String {
-        currentPack?.displayName ?? NSLocalizedString("Your pet", comment: "")
+        imagePets.displayName(for: pet.selectedPetID)
     }
 
     var body: some View {
@@ -275,7 +275,7 @@ struct CareTabView: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(verbatim: imagePets.pack(id: id)?.displayName ?? id)
+                    Text(verbatim: imagePets.displayName(for: id))
                         .font(.system(size: 13, weight: .semibold))
                     if id == care.currentPetID {
                         Text("Raising").font(.caption2).bold()

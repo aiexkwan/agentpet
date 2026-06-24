@@ -76,8 +76,7 @@ struct MenuContentView: View {
         let level = care.level
         let idx = min(care.stageIndex, Self.stageColors.count - 1)
         let color = Self.stageColors[idx]
-        let name = pet.selectedPetID.flatMap { imagePets.pack(id: $0)?.displayName }
-            ?? NSLocalizedString("Your pet", comment: "")
+        let name = imagePets.displayName(for: pet.selectedPetID)
 
         return VStack(alignment: .leading, spacing: 6) {
             sectionLabel("Companion")

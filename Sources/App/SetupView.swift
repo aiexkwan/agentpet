@@ -476,6 +476,7 @@ private struct PetTab: View {
     @State private var browsing = false
     @State private var creating = false
     @State private var petQuery = ""
+    @State private var renameText = ""
 
     enum PetSubTab { case `default`, project }
     @State private var petSubTab: PetSubTab = .default
@@ -533,7 +534,7 @@ private struct PetTab: View {
                         .background(RoundedRectangle(cornerRadius: 12).fill(.quaternary))
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 8) {
-                            Text(selectedPack?.displayName ?? "No pet selected")
+                            Text(imagePets.displayName(for: pet.selectedPetID))
                                 .font(.title3.weight(.semibold))
                             if let pack = selectedPack {
                                 Text(verbatim: "Lv \(PetCare.displayLevel(forXP: PetCareController.shared.states[pack.id]?.xp ?? 0))")
@@ -549,6 +550,26 @@ private struct PetTab: View {
                         }
                     }
                     Spacer()
+                }
+            }
+
+            if let id = pet.selectedPetID {
+                Section {
+                    HStack {
+                        TextField("Pet name", text: $renameText)
+                            .textFieldStyle(.roundedBorder)
+                            .onSubmit { imagePets.rename(id, to: renameText) }
+                        Button("Save") { imagePets.rename(id, to: renameText) }
+                            .disabled(renameText.trimmingCharacters(in: .whitespaces).isEmpty)
+                    }
+                } header: {
+                    Text("Name")
+                } footer: {
+                    Text("Give your companion a custom name. Clear it to use the original.")
+                }
+                .onAppear { renameText = imagePets.displayName(for: id) }
+                .onChange(of: pet.selectedPetID) { _ in
+                    renameText = imagePets.displayName(for: pet.selectedPetID)
                 }
             }
 

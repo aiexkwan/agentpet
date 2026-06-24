@@ -119,7 +119,7 @@ struct PetStatsView: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(stageColor.opacity(0.14)))
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(pack?.displayName ?? NSLocalizedString("Your pet", comment: ""))
+                Text(imagePets.displayName(for: resolvedPetID))
                     .font(.system(size: 14, weight: .bold)).foregroundStyle(.white)
                 HStack(spacing: 6) {
                     Text(verbatim: "Lv \(level)")

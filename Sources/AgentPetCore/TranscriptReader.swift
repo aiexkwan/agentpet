@@ -129,6 +129,82 @@ public enum TranscriptReader {
         return total
     }
 
+    // MARK: - Codex (rollout) usage
+
+    /// Sums new Codex token usage appended to a rollout JSONL since the previous
+    /// call for the same path (offset-based, like `newUsageTokens`). Codex writes
+    /// `{"payload":{"type":"token_count","info":{"last_token_usage":{...}}}}` once
+    /// per turn; we sum fresh input (minus cached) + output to mirror Claude's
+    /// `input_tokens + output_tokens`, so the leaderboard is comparable (#29).
+    public static func newCodexUsageTokens(at path: String) -> Int? {
+        guard let handle = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { try? handle.close() }
+
+        let size = (try? handle.seekToEnd()) ?? 0
+        var start = usageOffsets[path] ?? 0
+        if start > size { start = 0 }
+        guard size > start else { return 0 }
+
+        try? handle.seek(toOffset: start)
+        let raw = handle.readDataToEndOfFile()
+        guard let nl = raw.lastIndex(of: UInt8(ascii: "\n")) else { return 0 }
+        let consumable = raw[raw.startIndex...nl]
+        usageOffsets[path] = start + UInt64(consumable.count)
+
+        guard let text = String(data: consumable, encoding: .utf8) else { return 0 }
+        var total = 0
+        for line in text.components(separatedBy: "\n") {
+            guard line.contains("\"last_token_usage\"") else { continue }
+            guard let data = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let payload = json["payload"] as? [String: Any],
+                  let info = payload["info"] as? [String: Any],
+                  let last = info["last_token_usage"] as? [String: Any]
+            else { continue }
+            let input = last["input_tokens"] as? Int ?? 0
+            let cached = last["cached_input_tokens"] as? Int ?? 0
+            let output = last["output_tokens"] as? Int ?? 0
+            total += max(0, input - cached) + output
+        }
+        return total
+    }
+
+    /// Locates a Codex session's rollout file. Primary: a filename containing the
+    /// session id (`rollout-<ts>-<uuid>.jsonl`). Fallback: the most recently
+    /// modified rollout whose `session_meta.cwd` matches `cwd`.
+    public static func codexRolloutPath(sessionId: String, cwd: String?) -> String? {
+        let root = NSHomeDirectory() + "/.codex/sessions"
+        let fm = FileManager.default
+        guard let en = fm.enumerator(atPath: root) else { return nil }
+        var candidates: [(path: String, mtime: Date)] = []
+        for case let rel as String in en where rel.hasSuffix(".jsonl") && rel.contains("rollout-") {
+            let full = root + "/" + rel
+            if rel.contains(sessionId) { return full }   // exact session match
+            let m = (try? fm.attributesOfItem(atPath: full)[.modificationDate] as? Date) ?? nil
+            candidates.append((full, m ?? .distantPast))
+        }
+        guard let cwd, !cwd.isEmpty else { return nil }
+        let target = ProjectPetResolver.normalize(cwd)
+        // Newest first; match the rollout whose session_meta cwd is this project.
+        for (path, _) in candidates.sorted(by: { $0.mtime > $1.mtime }).prefix(40) {
+            guard let line = firstLine(ofFile: path),
+                  let data = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let payload = json["payload"] as? [String: Any],
+                  let c = payload["cwd"] as? String else { continue }
+            if ProjectPetResolver.normalize(c) == target { return path }
+        }
+        return nil
+    }
+
+    private static func firstLine(ofFile path: String) -> String? {
+        guard let handle = FileHandle(forReadingAtPath: path) else { return nil }
+        defer { try? handle.close() }
+        let chunk = handle.readData(ofLength: 4096)
+        guard let s = String(data: chunk, encoding: .utf8) else { return nil }
+        return s.components(separatedBy: "\n").first
+    }
+
     /// Constructs the expected transcript path for a Claude Code session.
     ///
     /// Claude Code stores transcripts at `~/.claude/projects/<sanitized-cwd>/<session-id>.jsonl`

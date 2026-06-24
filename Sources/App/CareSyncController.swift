@@ -111,7 +111,7 @@ final class CareSyncController: ObservableObject {
         guard !states.isEmpty else { return }
 
         let pets: [[String: Any]] = states.map { id, s in
-            let name = ImagePetStore.shared.pack(id: id)?.displayName ?? id
+            let name = ImagePetStore.shared.displayName(for: id)
             let week = PetCare.recentDays(state: s, now: Date()).map { $0.tokens }
             return [
                 "id": id,
