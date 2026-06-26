@@ -17,6 +17,12 @@ const toc = [
     { id: "uninstall", label: "Uninstall" },
     { id: "adopt", label: "Adopt a pet" },
   ]},
+  { group: "Raise & grow", items: [
+    { id: "care", label: "Pet care & growth" },
+    { id: "achievements", label: "Achievements" },
+    { id: "projects", label: "Per-project pets" },
+    { id: "breaks", label: "Break reminder" },
+  ]},
   { group: "Make pets", items: [
     { id: "format", label: "Pet format" },
     { id: "reactions", label: "Pet states" },
@@ -29,9 +35,9 @@ const toc = [
   ]},
 ];
 // Aggregate states the app surfaces, and the nine animation rows in a pet pack.
-const states = ["working", "waiting for input", "done", "idle", "celebrate"];
+const states = ["working", "waiting for input", "done", "idle", "celebrate", "sleepy", "level-up"];
 const animations = ["Idle", "Run Right", "Run Left", "Waving", "Jumping", "Failed", "Waiting", "Running", "Review"];
-const agents = ["Claude Code", "Codex", "Gemini CLI", "opencode", "Cursor", "Windsurf", "Antigravity"];
+const agents = ["Claude Code", "Codex", "Gemini CLI", "opencode", "Cursor", "Windsurf", "Antigravity", "GitHub Copilot", "Kiro CLI", "Factory Droid", "Pi"];
 const petJson = `{
   "id": "capybara",
   "displayName": "Capybara",
@@ -94,6 +100,31 @@ const petJson = `{
             <p class="mt-3 text-muted">This web <a href="/gallery" class="font-semibold text-brand-600 hover:text-brand-700">gallery</a> is a preview of that library, browsing, adopting, and managing pets all happen inside the app.</p>
           </article>
 
+          <article id="care" class="card p-7">
+            <h2 class="font-display text-2xl font-bold text-ink">Pet care &amp; growth</h2>
+            <p class="mt-3 text-muted">Your pet is a tamagotchi: it eats the <b class="text-ink">tokens your agents actually burn</b> and the sessions they finish. Feeding earns XP, and the pet levels up through five evolution stages, from Hatchling to Legend. Each pet keeps its own level, so the more you code with it, the more it grows.</p>
+            <p class="mt-3 text-muted">Both Claude Code and Codex feed real token usage, counted the same way, so growth and the leaderboard are comparable across agents. Right-click the pet for a HUD with its level, XP, today's and lifetime tokens, a 7-day burn chart, your streak, and your Claude/Codex usage limits read natively.</p>
+            <p class="mt-3 text-muted"><b class="text-ink">Rename your pet (v1.9):</b> give any companion a custom name in <b class="text-ink">Settings → Pet → Name</b>. The name shows on the HUD, the menu bar, and your web profile.</p>
+            <p class="mt-3 text-muted">Sign in on the <a href="/profile" class="font-semibold text-brand-600 hover:text-brand-700">web profile</a> to sync your companions and climb the <a href="/leaderboard" class="font-semibold text-brand-600 hover:text-brand-700">leaderboard</a> by XP, sessions, or tokens. AgentPet runs fully offline; connecting only adds the profile and leaderboard.</p>
+          </article>
+
+          <article id="achievements" class="card p-7">
+            <h2 class="font-display text-2xl font-bold text-ink">Achievements</h2>
+            <p class="mt-3 text-muted">Pets earn <b class="text-ink">14 badges</b> from real coding milestones: your first session, level-ups, token burns (1M / 10M / 50M), session counts (100 / 500), feeding streaks (7 / 14 / 30 days), and a Night Owl badge for coding after midnight.</p>
+            <p class="mt-3 text-muted">Right-click the pet to see the badge row (hover a badge for its name and how to unlock it), or open <b class="text-ink">Settings → Care</b> for the full grid. Your unlocked badges also appear on your web profile.</p>
+          </article>
+
+          <article id="projects" class="card p-7">
+            <h2 class="font-display text-2xl font-bold text-ink">Per-project pets</h2>
+            <p class="mt-3 text-muted">Raise a different companion per project. In <b class="text-ink">Settings → Pet</b>, turn on <b class="text-ink">Split pet</b> and assign a pet to a project folder. Only the projects you configure get their own on-screen pet; everything else shares your main pet, and each project's XP goes to the pet you assigned it.</p>
+            <p class="mt-3 text-muted">A configured project's pet stays put even when idle, and removing its mapping folds it back into the main pet at once. Prefer a tidier screen? Turn on <b class="text-ink">Hide idle project pets</b> to show a project's pet only while it is working.</p>
+          </article>
+
+          <article id="breaks" class="card p-7">
+            <h2 class="font-display text-2xl font-bold text-ink">Break reminder</h2>
+            <p class="mt-3 text-muted">Optionally let your pet nudge you to rest after a long work stretch. Enable it in <b class="text-ink">Settings → General</b> and set your work and break lengths. It is off by default, and the reminder comes from your pet rather than a system alert, so it stays gentle and in character.</p>
+          </article>
+
           <article id="format" class="card p-7">
             <h2 class="font-display text-2xl font-bold text-ink">Pet format</h2>
             <p class="mt-3 text-muted">A pet is a small <code class="rounded bg-brand-50 px-1.5 py-0.5 font-mono text-xs">pet.json</code> manifest plus one transparent spritesheet laid out <b class="text-ink">8×9</b>: eight frames across, nine animation rows down. Each row is one animation, and AgentPet lets you map any animation to a state.</p>
@@ -128,7 +159,7 @@ const petJson = `{
             <div class="mt-4 flex flex-wrap gap-2">
               {agents.map((a) => <span class="rounded-full border border-line bg-white px-4 py-2 text-sm font-medium text-ink">{a}</span>)}
             </div>
-            <p class="mt-4 text-sm text-muted">Claude Code, Codex, Gemini CLI and opencode report precise working / waiting / done states (including "needs your input"). Cursor, Windsurf and Antigravity report working / done. GLM (Z.AI) works through Claude Code. For anything else, wrap it with <code class="rounded bg-brand-50 px-1.5 py-0.5 font-mono text-xs">agentpet run -- &lt;command&gt;</code> to monitor any CLI agent.</p>
+            <p class="mt-4 text-sm text-muted">11 agents are supported. Claude Code, Codex, Gemini CLI, opencode and Factory Droid report precise working / waiting / done states (including "needs your input"). Cursor, Windsurf, Antigravity, GitHub Copilot, Kiro CLI and Pi report working / done. GLM (Z.AI) works through Claude Code. For anything else, wrap it with <code class="rounded bg-brand-50 px-1.5 py-0.5 font-mono text-xs">agentpet run -- &lt;command&gt;</code> to monitor any CLI agent.</p>
           </article>
 
           <article id="privacy" class="card p-7">
