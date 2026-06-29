@@ -164,7 +164,7 @@ import Hero from "../components/Hero.astro";
     // Paginates any leaderboard board: renders one page of `items`, draws a
     // Prev / Page X of Y / Next bar below it, and re-renders on click. Ranks stay
     // continuous across pages. `afterRender` redraws canvas thumbnails per page.
-    const PER_PAGE = 25;
+    const PER_PAGE = 50;
     function paginate(boxId: string, items: any[], renderItem: (it: any, rank: number) => string, afterRender?: (box: HTMLElement) => void) {
       const box = document.getElementById(boxId);
       if (!box) return;
