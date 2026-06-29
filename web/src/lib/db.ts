@@ -45,12 +45,28 @@ export async function ensureSchema(db: any): Promise<void> {
     db.prepare("CREATE TABLE IF NOT EXISTS care_devices (token TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created_at INTEGER NOT NULL DEFAULT 0)"),
     db.prepare("CREATE TABLE IF NOT EXISTS care_pets (user_id INTEGER NOT NULL, pet_id TEXT NOT NULL, name TEXT, xp INTEGER NOT NULL DEFAULT 0, tokens INTEGER NOT NULL DEFAULT 0, meals INTEGER NOT NULL DEFAULT 0, streak INTEGER NOT NULL DEFAULT 0, last_fed_at INTEGER, updated_at INTEGER NOT NULL DEFAULT 0, thumb TEXT, PRIMARY KEY (user_id, pet_id))"),
     db.prepare("CREATE INDEX IF NOT EXISTS idx_care_pets_user ON care_pets (user_id)"),
+    db.prepare("CREATE TABLE IF NOT EXISTS notifications (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, type TEXT NOT NULL, title TEXT NOT NULL, body TEXT, link TEXT, slug TEXT, read INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL)"),
+    db.prepare("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications (user_id, read, created_at)"),
   ]);
   // care_pets predates the thumb/week columns in prod; additive + idempotent.
   try { await db.prepare("ALTER TABLE care_pets ADD COLUMN thumb TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE care_pets ADD COLUMN week TEXT").run(); } catch {}
   try { await db.prepare("ALTER TABLE care_pets ADD COLUMN achievements TEXT").run(); } catch {}
   ready = true;
+}
+
+// Adds an in-app notification for a user (best-effort; never throws).
+export async function addNotification(
+  db: any, userId: number, type: string, title: string,
+  body?: string | null, link?: string | null, slug?: string | null,
+): Promise<void> {
+  if (!userId) return;
+  try {
+    await db
+      .prepare("INSERT INTO notifications (id, user_id, type, title, body, link, slug, read, created_at) VALUES (?,?,?,?,?,?,?,0,?)")
+      .bind(crypto.randomUUID(), userId, type, title, body ?? null, link ?? null, slug ?? null, Date.now())
+      .run();
+  } catch {}
 }
 
 // Analyzed dominant colour per pet (slug -> colour name), from the seed pipeline.

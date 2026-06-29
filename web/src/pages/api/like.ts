@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { verifySession, SESSION_COOKIE } from "../../lib/auth";
-import { getDB, ensureSchema, upsertUser } from "../../lib/db";
+import { getDB, ensureSchema, upsertUser, addNotification } from "../../lib/db";
 
 export const prerender = false;
 
@@ -47,5 +47,12 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     .prepare("INSERT INTO pet_stats (slug, likes) VALUES (?, ?) ON CONFLICT(slug) DO UPDATE SET likes = excluded.likes")
     .bind(slug, count)
     .run();
+  // Notify the pet's owner of a new like (not on unlike, not on self-like).
+  if (liked) {
+    const owner: any = await db.prepare("SELECT user_id, name FROM submissions WHERE slug=? AND status='approved' LIMIT 1").bind(slug).first();
+    if (owner && owner.user_id && owner.user_id !== user.id) {
+      await addNotification(db, owner.user_id, "like", `${user.login} liked “${owner.name}” ❤️`, null, `/pet/${slug}`, slug);
+    }
+  }
   return json({ likes: count, liked });
 };

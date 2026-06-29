@@ -1,7 +1,7 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { adminUser } from "../../../lib/admin";
-import { getDB, ensureSchema, getSubmission, setSubmissionStatus } from "../../../lib/db";
+import { getDB, ensureSchema, getSubmission, setSubmissionStatus, addNotification } from "../../../lib/db";
 
 export const prerender = false;
 
@@ -33,6 +33,8 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   if (action === "reject") {
     await setSubmissionStatus(db, id, "rejected");
     try { await bucket.delete(pendingKey); } catch {}
+    await addNotification(db, sub.user_id, "rejected", `“${sub.name}” wasn't approved`,
+      "Tweak it and submit again any time.", "/submit", sub.slug);
     return json({ ok: true, id, status: "rejected" });
   }
 
@@ -51,6 +53,8 @@ export const POST: APIRoute = async ({ cookies, request }) => {
 
   await setSubmissionStatus(db, id, "approved");
   try { await bucket.delete(pendingKey); } catch {}
+  await addNotification(db, sub.user_id, "approved", `“${sub.name}” was approved 🎉`,
+    "It's live in the gallery now.", `/pet/${sub.slug}`, sub.slug);
   return json({ ok: true, id, status: "approved", slug: sub.slug });
 };
 

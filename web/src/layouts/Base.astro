@@ -446,25 +446,87 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
           ? `<a href="/admin" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Pet admin</a>`
           : "";
         slot.innerHTML = `
-          <div class="relative">
-            <button id="ap-avatar" type="button" class="flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-3 shadow-soft transition hover:border-brand-300">
-              <img src="${user.avatar}" alt="" class="h-7 w-7 rounded-full" />
-              <span class="hidden text-sm font-semibold text-ink sm:inline">${login}</span>
-            </button>
-            <div id="ap-menu" class="absolute right-0 z-50 mt-2 hidden w-48 rounded-2xl border border-line bg-white p-2 shadow-card">
-              <div class="px-3 py-2 text-xs text-faint">Signed in as <b class="text-ink">${login}</b></div>
-              <a href="/profile" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">My pets</a>
-              <a href="/submit" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Submit a pet</a>
-              ${adminLink}
-              <a href="/api/auth/logout" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Sign out</a>
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <button id="ap-bell" type="button" aria-label="Notifications" class="relative grid h-9 w-9 place-items-center rounded-full border border-line bg-white shadow-soft transition hover:border-brand-300">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-5 w-5 text-muted"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                <span id="ap-bell-badge" class="absolute -right-1 -top-1 hidden min-w-[17px] rounded-full bg-rose-500 px-1 text-center text-[10px] font-bold leading-[17px] text-white"></span>
+              </button>
+              <div id="ap-noti" class="absolute right-0 z-50 mt-2 hidden w-80 max-w-[88vw] rounded-2xl border border-line bg-white p-2 shadow-card">
+                <div class="flex items-center justify-between px-3 py-2"><span class="text-sm font-bold text-ink">Notifications</span></div>
+                <div id="ap-noti-list" class="max-h-96 overflow-auto"></div>
+              </div>
+            </div>
+            <div class="relative">
+              <button id="ap-avatar" type="button" class="flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-3 shadow-soft transition hover:border-brand-300">
+                <img src="${user.avatar}" alt="" class="h-7 w-7 rounded-full" />
+                <span class="hidden text-sm font-semibold text-ink sm:inline">${login}</span>
+              </button>
+              <div id="ap-menu" class="absolute right-0 z-50 mt-2 hidden w-48 rounded-2xl border border-line bg-white p-2 shadow-card">
+                <div class="px-3 py-2 text-xs text-faint">Signed in as <b class="text-ink">${login}</b></div>
+                <a href="/profile" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">My pets</a>
+                <a href="/submit" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Submit a pet</a>
+                ${adminLink}
+                <a href="/api/auth/logout" class="block rounded-xl px-3 py-2 text-sm font-medium text-muted transition hover:bg-brand-50 hover:text-brand-700">Sign out</a>
+              </div>
             </div>
           </div>`;
         const btn = document.getElementById("ap-avatar");
         const menu = document.getElementById("ap-menu");
-        btn?.addEventListener("click", (e) => { e.stopPropagation(); menu?.classList.toggle("hidden"); });
+        btn?.addEventListener("click", (e) => { e.stopPropagation(); menu?.classList.toggle("hidden"); document.getElementById("ap-noti")?.classList.add("hidden"); });
         document.addEventListener("click", () => menu?.classList.add("hidden"));
+        setupNotifications();
         // Re-translate the freshly injected auth menu into the current language.
         (window as any).AP_I18N?.apply?.();
+      }
+
+      // Nav notification bell: red badge for unread, dropdown list, mark-read on open.
+      function setupNotifications() {
+        const bell = document.getElementById("ap-bell");
+        const panel = document.getElementById("ap-noti");
+        const list = document.getElementById("ap-noti-list");
+        const badge = document.getElementById("ap-bell-badge");
+        if (!bell || !panel || !list || !badge) return;
+        const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+        const ago = (t: number) => {
+          const d = Math.max(0, Date.now() - t), m = Math.floor(d / 60000), h = Math.floor(m / 60), dy = Math.floor(h / 24);
+          return dy ? dy + "d" : h ? h + "h" : m ? m + "m" : "now";
+        };
+        const setBadge = (n: number) => { if (n > 0) { badge.textContent = n > 99 ? "99+" : String(n); badge.classList.remove("hidden"); } else { badge.classList.add("hidden"); } };
+        async function load() {
+          const d: any = await fetch("/api/notifications.json").then((r) => r.json()).catch(() => ({ items: [], unread: 0 }));
+          setBadge(d.unread || 0);
+          const items = d.items || [];
+          list.innerHTML = items.length
+            ? items.map((n: any) => {
+                const inner = `
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm ${n.read ? "text-muted" : "font-semibold text-ink"}">${esc(n.title)}</div>
+                    ${n.body ? `<div class="text-xs text-faint">${esc(n.body)}</div>` : ""}
+                    <div class="mt-0.5 text-[10px] text-faint">${ago(n.created_at)} ago</div>
+                  </div>
+                  ${n.read ? "" : `<span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-rose-500"></span>`}`;
+                return n.link
+                  ? `<a href="${esc(n.link)}" class="flex items-start gap-2 rounded-xl px-3 py-2 transition hover:bg-brand-50">${inner}</a>`
+                  : `<div class="flex items-start gap-2 rounded-xl px-3 py-2">${inner}</div>`;
+              }).join("")
+            : `<div class="px-3 py-8 text-center text-sm text-faint">No notifications yet.</div>`;
+        }
+        bell.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const opening = panel.classList.contains("hidden");
+          panel.classList.toggle("hidden");
+          document.getElementById("ap-menu")?.classList.add("hidden");
+          if (opening) {
+            await load();
+            // Mark all read once the user opens the panel (Facebook-style).
+            fetch("/api/notifications.json", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })
+              .then(() => { setBadge(0); }).catch(() => {});
+          }
+        });
+        document.addEventListener("click", () => panel.classList.add("hidden"));
+        panel.addEventListener("click", (e) => e.stopPropagation());
+        load();  // initial badge
       }
 
       function setLiked(btn: Element, liked: boolean) {

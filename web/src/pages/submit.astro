@@ -58,8 +58,15 @@ const KINDS = KIND_OPTIONS;
         <!-- Your submissions: the user sees the review status of their own pets. -->
         <div id="my-subs-wrap" class="mt-8 hidden">
           <h2 class="font-display text-lg font-bold text-ink">Your submissions</h2>
-          <p class="mt-1 text-sm text-muted">Track the review status of pets you've sent in.</p>
+          <p class="mt-1 text-sm text-muted">Track the review status of pets you've sent in. Delete any you no longer want (approved pets are removed from the gallery).</p>
           <div id="my-subs" class="mt-4 grid gap-3"></div>
+        </div>
+
+        <!-- Your pet requests. -->
+        <div id="my-reqs-wrap" class="mt-8 hidden">
+          <h2 class="font-display text-lg font-bold text-ink">Your requests</h2>
+          <p class="mt-1 text-sm text-muted">Pet ideas you've requested. Delete any you've changed your mind about.</p>
+          <div id="my-reqs" class="mt-4 grid gap-3"></div>
         </div>
       )}
     </div>
@@ -103,29 +110,69 @@ const KINDS = KIND_OPTIONS;
       const wrap = document.getElementById("my-subs-wrap");
       const box = document.getElementById("my-subs");
       if (!wrap || !box) return;  // not signed in
-      const esc = (s: string) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
-      const d: any = await fetch("/api/my-submissions.json").then((r) => r.json()).catch(() => ({ submissions: [] }));
-      const subs = d.submissions || [];
-      if (!subs.length) return;
-      wrap.classList.remove("hidden");
-      const badge = (st: string) => st === "approved"
-        ? `<span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600">✓ Approved</span>`
-        : st === "rejected"
-        ? `<span class="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600">✗ Rejected</span>`
-        : `<span class="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-600">⏳ Pending</span>`;
-      box.innerHTML = subs.map((s: any) => {
-        const when = s.reviewed_at ? new Date(s.reviewed_at).toLocaleDateString() : s.created_at ? new Date(s.created_at).toLocaleDateString() : "";
-        const link = s.status === "approved" ? `<a href="/pet/${s.slug}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View in gallery →</a>` : "";
-        return `<div class="card flex items-center gap-3 p-3">
-          <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-line sprite-checker"><img src="${s.previewUrl}" alt="" class="pixel-art max-h-10" loading="lazy" /></span>
-          <span class="min-w-0 flex-1">
-            <span class="block truncate font-display font-semibold text-ink">${esc(s.name)}</span>
-            <span class="text-xs text-faint">${esc(s.kind)}${when ? " · " + when : ""}</span>
-            ${link}
-          </span>
-          ${badge(s.status)}
-        </div>`;
-      }).join("");
+      const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+      const delBtn = (kind: string, id: string) =>
+        `<button data-del="${kind}" data-id="${esc(id)}" title="Delete" class="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line text-faint transition hover:border-rose-300 hover:text-rose-600">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>
+         </button>`;
+
+      async function loadSubs() {
+        const d: any = await fetch("/api/my-submissions.json").then((r) => r.json()).catch(() => ({ submissions: [] }));
+        const subs = d.submissions || [];
+        wrap!.classList.toggle("hidden", subs.length === 0);
+        const badge = (st: string) => st === "approved"
+          ? `<span class="shrink-0 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600">✓ Approved</span>`
+          : st === "rejected"
+          ? `<span class="shrink-0 rounded-full bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-600">✗ Rejected</span>`
+          : `<span class="shrink-0 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-600">⏳ Pending</span>`;
+        box!.innerHTML = subs.map((s: any) => {
+          const when = s.reviewed_at ? new Date(s.reviewed_at).toLocaleDateString() : s.created_at ? new Date(s.created_at).toLocaleDateString() : "";
+          const link = s.status === "approved" ? `<a href="/pet/${s.slug}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View in gallery →</a>` : "";
+          return `<div class="card flex items-center gap-3 p-3">
+            <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-line sprite-checker"><img src="${s.previewUrl}" alt="" class="pixel-art max-h-10" loading="lazy" /></span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-display font-semibold text-ink">${esc(s.name)}</span>
+              <span class="text-xs text-faint">${esc(s.kind)}${when ? " · " + when : ""}</span>
+              ${link}
+            </span>
+            ${badge(s.status)}
+            ${delBtn("sub", s.id)}
+          </div>`;
+        }).join("");
+      }
+
+      async function loadReqs() {
+        const rWrap = document.getElementById("my-reqs-wrap");
+        const rBox = document.getElementById("my-reqs");
+        if (!rWrap || !rBox) return;
+        const d: any = await fetch("/api/my-requests.json").then((r) => r.json()).catch(() => ({ requests: [] }));
+        const reqs = d.requests || [];
+        rWrap.classList.toggle("hidden", reqs.length === 0);
+        rBox.innerHTML = reqs.map((r: any) => `
+          <div class="card flex items-center gap-3 p-3">
+            <span class="min-w-0 flex-1">
+              <span class="block truncate font-display font-semibold text-ink">${esc(r.title)}</span>
+              <span class="text-xs text-faint">${r.votes} vote${r.votes === 1 ? "" : "s"} · ${esc(r.status)}</span>
+            </span>
+            ${delBtn("req", r.id)}
+          </div>`).join("");
+      }
+
+      // Delegated delete handler for both submissions and requests.
+      document.addEventListener("click", async (e) => {
+        const b = (e.target as HTMLElement).closest("[data-del]") as HTMLElement | null;
+        if (!b) return;
+        const kind = b.dataset.del, id = b.dataset.id!;
+        if (!confirm(kind === "sub" ? "Delete this submission? Approved pets are removed from the gallery." : "Delete this request?")) return;
+        (b as HTMLButtonElement).disabled = true;
+        const url = kind === "sub" ? "/api/my-submissions/delete" : "/api/requests/delete";
+        const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) }).then((x) => x.json()).catch(() => null);
+        if (r?.ok) { kind === "sub" ? loadSubs() : loadReqs(); }
+        else (b as HTMLButtonElement).disabled = false;
+      });
+
+      loadSubs();
+      loadReqs();
     })();
   </script>
 </Base>
