@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { currentUser } from "../../lib/admin";
 import { slugify, KIND_OPTIONS } from "../../lib/pets";
 import { getDB, ensureSchema, insertSubmission } from "../../lib/db";
+import { notifyTelegram, tgEscape } from "../../lib/telegram";
 
 export const prerender = false;
 
@@ -52,6 +53,12 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     id, slug, name, kind, description: description || null, sheet_ext: ext,
     user_id: user.id, login: user.login, avatar: user.avatar, created_at: Date.now(),
   });
+
+  await notifyTelegram(
+    `✨ <b>New pet submission</b> (needs review)\n<b>${tgEscape(name)}</b> · ${tgEscape(kind)}` +
+    (description ? `\n${tgEscape(description)}` : "") +
+    `\nby @${tgEscape(user.login)}\nhttps://agentpet.thenightwatcher.online/admin/submissions`
+  );
 
   return json({ ok: true, id, slug });
 };

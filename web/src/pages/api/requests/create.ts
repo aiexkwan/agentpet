@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { currentUser } from "../../../lib/admin";
 import { getDB, ensureSchema, createRequest } from "../../../lib/db";
+import { notifyTelegram, tgEscape } from "../../../lib/telegram";
 
 export const prerender = false;
 
@@ -21,6 +22,11 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   await ensureSchema(db);
   const id = crypto.randomUUID();
   await createRequest(db, { id, title, description: description || null, user_id: user.id, login: user.login, avatar: user.avatar, created_at: Date.now() });
+  await notifyTelegram(
+    `🐾 <b>New pet request</b>\n<b>${tgEscape(title)}</b>` +
+    (description ? `\n${tgEscape(description)}` : "") +
+    `\nby @${tgEscape(user.login)}\nhttps://agentpet.thenightwatcher.online/requests`
+  );
   return json({ ok: true, id });
 };
 
