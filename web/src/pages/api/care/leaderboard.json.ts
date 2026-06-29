@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ url }) => {
        LEFT JOIN users u ON u.id = c.user_id
        WHERE ${guard}
        ORDER BY ${orderCol} DESC
-       LIMIT 50`
+       LIMIT 300`
     )
     .all();
 

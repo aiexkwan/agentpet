@@ -161,48 +161,82 @@ import Hero from "../components/Hero.astro";
     const levelFor = (xp: number) => { let n = 1; while (60 * (n + 1) * n <= xp) n++; return n; };
     const stageFor = (lv: number) => { for (const [m, s, c] of STAGES2) if (lv >= m) return [s, c] as [string, string]; return ["Hatchling", "#22c55e"] as [string, string]; };
 
-    function renderCare(boxId: string, pets: any[], metric: "xp" | "tokens" | "sessions") {
-      const box = document.getElementById(boxId)!;
+    // Paginates any leaderboard board: renders one page of `items`, draws a
+    // Prev / Page X of Y / Next bar below it, and re-renders on click. Ranks stay
+    // continuous across pages. `afterRender` redraws canvas thumbnails per page.
+    const PER_PAGE = 12;
+    function paginate(boxId: string, items: any[], renderItem: (it: any, rank: number) => string, afterRender?: (box: HTMLElement) => void) {
+      const box = document.getElementById(boxId);
+      if (!box) return;
       const empty = document.getElementById(boxId + "-empty");
-      if (empty) empty.classList.toggle("hidden", pets.length > 0);
-      box.innerHTML = pets.map((p: any, i: number) => {
-        const lv = levelFor(p.xp);
-        const dispLv = Math.max(0, lv - 1);
-        const [, color] = stageFor(lv);
-        const owner = p.owner ? esc(p.owner) : "";
-        // Prefer the synced sprite thumbnail; fall back to slicing the catalog
-        // sprite by pet id; finally an initial.
-        const initial = (p.name || "?").charAt(0).toUpperCase();
-        const preview = p.thumb
-          ? `<img src="${p.thumb}" alt="" class="pixel-art h-10 w-10 object-contain" />`
-          : `<span class="care-fallback absolute font-display text-sm font-bold" style="color:${color}">${esc(initial)}</span><canvas class="care-thumb relative h-10 w-10" width="80" height="80" data-slug="${slug(p.id || "")}"></canvas>`;
-        const ownerTag = owner
-          ? `<a href="https://github.com/${owner}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-700">${p.ownerAvatar ? `<img src="${p.ownerAvatar}" class="h-4 w-4 rounded-full" alt="" />` : ""}${owner}</a>`
-          : `<span class="text-xs text-faint">someone</span>`;
-        const metricBig = metric === "tokens" ? tokenLabel(p.tokens) : metric === "sessions" ? String(p.meals) : "Lv " + dispLv;
-        const metricSub = metric === "tokens" ? "tokens" : metric === "sessions" ? "sessions · Lv " + dispLv : p.xp.toLocaleString() + " XP";
-        return `
-          <div class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2.5">
-            <span class="w-5 shrink-0 text-center font-display text-sm font-bold ${i < 3 ? "text-amber-600" : "text-faint"}">${i + 1}</span>
-            <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl sprite-checker" style="background:${color}14">${preview}<span class="absolute -bottom-1 -right-1 rounded-full bg-white px-1 text-[9px] font-bold shadow" style="color:${color}">${dispLv}</span></span>
-            <span class="min-w-0 flex-1">
-              <span class="block truncate font-display font-semibold text-ink">${esc(p.name)}</span>
-              ${ownerTag}
-            </span>
-            <span class="shrink-0 text-right">
-              <span class="block font-display text-base font-bold" style="color:${color}">${metricBig}</span>
-              <span class="block text-[11px] text-faint">${metricSub}</span>
-            </span>
-          </div>`;
-      }).join("");
+      if (empty) empty.classList.toggle("hidden", items.length > 0);
+      let pager = document.getElementById(boxId + "-pager");
+      if (!pager) {
+        pager = document.createElement("div");
+        pager.id = boxId + "-pager";
+        pager.className = "mt-5 flex items-center justify-center gap-3";
+        box.after(pager);
+      }
+      const pages = Math.max(1, Math.ceil(items.length / PER_PAGE));
+      let page = 0;
+      const show = () => {
+        const start = page * PER_PAGE;
+        box.innerHTML = items.slice(start, start + PER_PAGE).map((it, i) => renderItem(it, start + i)).join("");
+        if (afterRender) afterRender(box as HTMLElement);
+        pager!.innerHTML = pages > 1
+          ? `<button data-pg="prev" class="chip !px-3 !py-1.5 text-sm disabled:opacity-40" ${page === 0 ? "disabled" : ""}>‹ Prev</button>
+             <span class="text-sm font-medium text-muted">Page ${page + 1} / ${pages} · ${items.length}</span>
+             <button data-pg="next" class="chip !px-3 !py-1.5 text-sm disabled:opacity-40" ${page >= pages - 1 ? "disabled" : ""}>Next ›</button>`
+          : "";
+      };
+      pager.onclick = (e) => {
+        const b = (e.target as HTMLElement).closest("[data-pg]") as HTMLButtonElement | null;
+        if (!b || b.disabled) return;
+        page = Math.max(0, Math.min(pages - 1, page + (b.dataset.pg === "next" ? 1 : -1)));
+        show();
+        box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      };
+      show();
+    }
+
+    function careRow(p: any, i: number, metric: "xp" | "tokens" | "sessions") {
+      const lv = levelFor(p.xp);
+      const dispLv = Math.max(0, lv - 1);
+      const [, color] = stageFor(lv);
+      const owner = p.owner ? esc(p.owner) : "";
+      const initial = (p.name || "?").charAt(0).toUpperCase();
+      const preview = p.thumb
+        ? `<img src="${p.thumb}" alt="" class="pixel-art h-10 w-10 object-contain" />`
+        : `<span class="care-fallback absolute font-display text-sm font-bold" style="color:${color}">${esc(initial)}</span><canvas class="care-thumb relative h-10 w-10" width="80" height="80" data-slug="${slug(p.id || "")}"></canvas>`;
+      const ownerTag = owner
+        ? `<a href="https://github.com/${owner}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-700">${p.ownerAvatar ? `<img src="${p.ownerAvatar}" class="h-4 w-4 rounded-full" alt="" />` : ""}${owner}</a>`
+        : `<span class="text-xs text-faint">someone</span>`;
+      const metricBig = metric === "tokens" ? tokenLabel(p.tokens) : metric === "sessions" ? String(p.meals) : "Lv " + dispLv;
+      const metricSub = metric === "tokens" ? "tokens" : metric === "sessions" ? "sessions · Lv " + dispLv : p.xp.toLocaleString() + " XP";
+      return `
+        <div class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2.5">
+          <span class="w-5 shrink-0 text-center font-display text-sm font-bold ${i < 3 ? "text-amber-600" : "text-faint"}">${i + 1}</span>
+          <span class="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl sprite-checker" style="background:${color}14">${preview}<span class="absolute -bottom-1 -right-1 rounded-full bg-white px-1 text-[9px] font-bold shadow" style="color:${color}">${dispLv}</span></span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate font-display font-semibold text-ink">${esc(p.name)}</span>
+            ${ownerTag}
+          </span>
+          <span class="shrink-0 text-right">
+            <span class="block font-display text-base font-bold" style="color:${color}">${metricBig}</span>
+            <span class="block text-[11px] text-faint">${metricSub}</span>
+          </span>
+        </div>`;
+    }
+
+    function drawCareThumbs(box: HTMLElement) {
       box.querySelectorAll<HTMLCanvasElement>("canvas.care-thumb").forEach((cv) => {
         const fallback = cv.parentElement?.querySelector<HTMLElement>(".care-fallback");
-        if (!cv.dataset.slug) return;  // keep the letter
+        if (!cv.dataset.slug) return;
         const ctx = cv.getContext("2d")!; ctx.imageSmoothingEnabled = false;
         const img = new Image();
         img.onload = () => {
           const f = firstFrame(img);
-          if (!f) return;  // unsliceable: leave the letter showing
+          if (!f) return;
           const s = Math.min(cv.width / f.w, cv.height / f.h) * 0.9, dw = f.w * s, dh = f.h * s;
           ctx.clearRect(0, 0, cv.width, cv.height);
           ctx.drawImage(img, f.x, f.y, f.w, f.h, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh);
@@ -210,6 +244,10 @@ import Hero from "../components/Hero.astro";
         };
         img.src = "/api/sprite/" + cv.dataset.slug;
       });
+    }
+
+    function renderCare(boxId: string, pets: any[], metric: "xp" | "tokens" | "sessions") {
+      paginate(boxId, pets, (p, i) => careRow(p, i, metric), drawCareThumbs);
     }
 
     (async () => {
@@ -234,22 +272,15 @@ import Hero from "../components/Hero.astro";
       const names: Record<string, string> = {};
       for (const p of pj.pets || []) names[p.slug] = p.name;
 
-      const petsBox = document.getElementById("lb-pets")!;
-      const pets = lb.pets || [];
-      document.getElementById("lb-pets-empty")!.classList.toggle("hidden", pets.length > 0);
-      petsBox.innerHTML = pets.map((p: any, i: number) => `
+      paginate("lb-pets", lb.pets || [], (p: any, i: number) => `
         <a href="/pet/${p.slug}" class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2 transition hover:border-brand-300 hover:bg-brand-50/40">
           <span class="w-6 shrink-0 text-center font-display text-sm font-bold ${i < 3 ? "text-accent-600" : "text-faint"}">${i + 1}</span>
           <span class="grid h-12 w-12 shrink-0 place-items-center rounded-xl border border-line sprite-checker ap-skel"><canvas class="lb-thumb h-10 w-10" width="80" height="80" data-slug="${p.slug}"></canvas></span>
           <span class="min-w-0 flex-1 truncate font-display font-semibold text-ink">${esc(names[p.slug] || p.slug)}</span>
           <span class="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-muted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4 text-accent-500"><path d="M20.8 6.6a5 5 0 0 0-7.1 0L12 8.3l-1.7-1.7a5 5 0 1 0-7.1 7.1l1.7 1.7L12 22l7.1-7.1 1.7-1.7a5 5 0 0 0 0-7.1z"/></svg>${p.likes}</span>
-        </a>`).join("");
-      petsBox.querySelectorAll<HTMLCanvasElement>("canvas.lb-thumb").forEach((cv) => drawThumb(cv, cv.dataset.slug!));
+        </a>`, (box) => box.querySelectorAll<HTMLCanvasElement>("canvas.lb-thumb").forEach((cv) => drawThumb(cv, cv.dataset.slug!)));
 
-      const creatorsBox = document.getElementById("lb-creators")!;
-      const creators = lb.creators || [];
-      document.getElementById("lb-creators-empty")!.classList.toggle("hidden", creators.length > 0);
-      creatorsBox.innerHTML = creators.map((u: any, i: number) => {
+      paginate("lb-creators", lb.creators || [], (u: any, i: number) => {
         const login = esc(u.login);
         const avatar = u.avatar ? `<img src="${u.avatar}" alt="" class="h-9 w-9 shrink-0 rounded-full" />` : `<span class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-600 font-display font-bold">${login.charAt(0).toUpperCase()}</span>`;
         return `
@@ -259,12 +290,9 @@ import Hero from "../components/Hero.astro";
           <span class="min-w-0 flex-1 truncate font-display font-semibold text-ink">${login}</span>
           <span class="shrink-0 text-sm font-medium text-muted">${u.count} pet${u.count === 1 ? "" : "s"}</span>
         </a>`;
-      }).join("");
+      });
 
-      const fansBox = document.getElementById("lb-fans")!;
-      const fans = lb.fans || [];
-      document.getElementById("lb-fans-empty")!.classList.toggle("hidden", fans.length > 0);
-      fansBox.innerHTML = fans.map((u: any, i: number) => {
+      paginate("lb-fans", lb.fans || [], (u: any, i: number) => {
         const login = esc(u.login);
         return `
         <a href="https://github.com/${login}" target="_blank" rel="noopener" class="flex items-center gap-3 rounded-2xl border border-line bg-white px-3 py-2 transition hover:border-brand-300 hover:bg-brand-50/40">
@@ -273,7 +301,7 @@ import Hero from "../components/Hero.astro";
           <span class="min-w-0 flex-1 truncate font-display font-semibold text-ink">${login}</span>
           <span class="shrink-0 text-sm font-medium text-muted">${u.count} like${u.count === 1 ? "" : "s"}</span>
         </a>`;
-      }).join("");
+      });
     })();
   </script>
 </Base>

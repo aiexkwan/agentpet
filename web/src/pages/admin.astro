@@ -71,6 +71,32 @@ const STAGES = STAGE_DEFS.map(([name, startInternal, lastDisplay, open]) => {
         </div>
         <p class="mt-2 text-muted">Sorted by dex number. Click a pet to open its full editor. A green check marks pets you've reviewed.</p>
 
+        <!-- Dashboard stats -->
+        <div id="admin-stats" class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"></div>
+        <script>
+          (async () => {
+            const fmt = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n ?? 0);
+            const s: any = await fetch("/api/admin/stats.json").then((r) => r.json()).catch(() => null);
+            const box = document.getElementById("admin-stats");
+            if (!s || !box) return;
+            const cards: [string, string | number, string][] = [
+              ["Connected users", s.connectedUsers, `${s.devices} device${s.devices === 1 ? "" : "s"} · ${s.activeToday} active today`],
+              ["Raised pets", s.raisedPets, `${s.ownersWithPets} owner${s.ownersWithPets === 1 ? "" : "s"}`],
+              ["Tokens fed", fmt(s.totalTokens), "across all pets"],
+              ["Sessions", fmt(s.totalSessions), "completed"],
+              ["Pending review", s.submissions?.pending ?? 0, `${s.submissions?.approved ?? 0} approved · ${s.submissions?.rejected ?? 0} rejected`],
+              ["Community likes", fmt(s.totalLikes), "on shared pets"],
+              ["Pet requests", s.requests, "submitted"],
+            ];
+            box.innerHTML = cards.map(([label, val, sub]) => `
+              <div class="card p-4">
+                <div class="font-pixel text-[10px] uppercase tracking-wide text-faint">${label}</div>
+                <div class="mt-1 font-display text-2xl font-bold text-ink">${val}</div>
+                ${sub ? `<div class="mt-0.5 text-[11px] text-faint">${sub}</div>` : ""}
+              </div>`).join("");
+          })();
+        </script>
+
         <!-- Evolution stages reference (admin only) -->
         <div class="card mt-6 p-5">
           <div class="flex items-center gap-2">
