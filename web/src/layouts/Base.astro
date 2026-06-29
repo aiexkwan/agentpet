@@ -585,5 +585,42 @@ const clouds = Array.from({ length: N_CLOUDS }, (_, i) => ({
     })();
   </script>
   <SurprisePet />
+
+  <!-- Shared confirm dialog (replaces native confirm()). Use window.apConfirm(message, opts?). -->
+  <div id="ap-confirm" class="fixed inset-0 z-[120] hidden items-center justify-center bg-ink/40 p-4 backdrop-blur-sm">
+    <div class="card w-full max-w-sm p-6 text-center">
+      <p id="ap-confirm-msg" class="text-ink"></p>
+      <div class="mt-6 flex justify-center gap-3">
+        <button id="ap-confirm-cancel" type="button" class="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-muted transition hover:bg-mist">Cancel</button>
+        <button id="ap-confirm-ok" type="button" class="rounded-full px-5 py-2.5 text-sm font-semibold text-white transition">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const m = document.getElementById("ap-confirm")!;
+      const msg = document.getElementById("ap-confirm-msg")!;
+      const ok = document.getElementById("ap-confirm-ok") as HTMLButtonElement;
+      const cancel = document.getElementById("ap-confirm-cancel")!;
+      let resolver: ((v: boolean) => void) | null = null;
+      const close = (v: boolean) => {
+        m.classList.add("hidden"); m.classList.remove("flex");
+        const r = resolver; resolver = null; if (r) r(v);
+      };
+      ok.addEventListener("click", () => close(true));
+      cancel.addEventListener("click", () => close(false));
+      m.addEventListener("click", (e) => { if (e.target === m) close(false); });
+      document.addEventListener("keydown", (e) => { if (!m.classList.contains("hidden") && e.key === "Escape") close(false); });
+      (window as any).apConfirm = (message: string, opts: any = {}) => {
+        msg.textContent = message;
+        ok.textContent = opts.confirmLabel || "Confirm";
+        ok.className = "rounded-full px-5 py-2.5 text-sm font-semibold text-white transition " +
+          (opts.danger ? "bg-rose-500 hover:bg-rose-600" : "bg-brand-600 hover:bg-brand-700");
+        m.classList.remove("hidden"); m.classList.add("flex");
+        ok.focus();
+        return new Promise<boolean>((res) => { resolver = res; });
+      };
+    })();
+  </script>
 </body>
 </html>

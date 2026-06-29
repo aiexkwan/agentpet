@@ -163,7 +163,11 @@ const KINDS = KIND_OPTIONS;
         const b = (e.target as HTMLElement).closest("[data-del]") as HTMLElement | null;
         if (!b) return;
         const kind = b.dataset.del, id = b.dataset.id!;
-        if (!confirm(kind === "sub" ? "Delete this submission? Approved pets are removed from the gallery." : "Delete this request?")) return;
+        const ok = await (window as any).apConfirm(
+          kind === "sub" ? "Delete this submission? Approved pets are removed from the gallery." : "Delete this request?",
+          { danger: true, confirmLabel: "Delete" }
+        );
+        if (!ok) return;
         (b as HTMLButtonElement).disabled = true;
         const url = kind === "sub" ? "/api/my-submissions/delete" : "/api/requests/delete";
         const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id }) }).then((x) => x.json()).catch(() => null);
